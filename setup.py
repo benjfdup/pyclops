@@ -7,7 +7,7 @@ setup(
     install_requires=[
         "torch>=2.0.0",
         "mdtraj",
-        "numpy>=1.26.3",
+        "numpy>=2.0.0",
         # Additional dependencies may be needed
     ],
     author="Your Name",
