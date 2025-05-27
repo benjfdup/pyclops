@@ -7,6 +7,12 @@ import numpy as np
 from pyclops.core.chemical_loss_handler import ChemicalLossHandler
 from pyclops.utils.constants import KB
 
+# Test markers
+pytestmark = [
+    pytest.mark.unit,  # Mark all tests in this file as unit tests
+    pytest.mark.chemical_loss  # Mark all tests as related to chemical loss
+]
+
 @pytest.fixture(params=["chignolin", "pd1_binder"])
 def peptide_pdb(request, peptide_pdb_files):
     """Create a fixture that provides each peptide PDB file in turn."""
@@ -24,6 +30,7 @@ def chemical_loss_handler(peptide_pdb):
         alpha=-3.0
     )
 
+@pytest.mark.initialization
 def test_initialization(chemical_loss_handler, peptide_pdb):
     """Test basic initialization of ChemicalLossHandler."""
     assert chemical_loss_handler.pdb_path == peptide_pdb
@@ -31,6 +38,7 @@ def test_initialization(chemical_loss_handler, peptide_pdb):
     assert chemical_loss_handler.alpha == -3.0
     assert isinstance(chemical_loss_handler.device, torch.device)
 
+@pytest.mark.error_handling
 def test_invalid_pdb_path():
     """Test that initialization fails with invalid PDB path."""
     with pytest.raises(FileNotFoundError):
@@ -39,6 +47,7 @@ def test_invalid_pdb_path():
             units="angstroms"
         )
 
+@pytest.mark.error_handling
 def test_invalid_units():
     """Test that initialization fails with invalid units."""
     with pytest.raises(ValueError, match="Unknown unit"):
@@ -47,6 +56,7 @@ def test_invalid_units():
             units="invalid_unit"
         )
 
+@pytest.mark.error_handling
 def test_units_ambiguity():
     """Test that initialization fails when both units and units_factor are provided."""
     with pytest.raises(ValueError, match="Provide either 'units' or 'units_factor'"):
@@ -56,6 +66,7 @@ def test_units_ambiguity():
             units_factor=1.0
         )
 
+@pytest.mark.error_handling
 def test_missing_units():
     """Test that initialization fails when neither units nor units_factor is provided."""
     with pytest.raises(ValueError, match="Either 'units' or 'units_factor' must be provided"):
@@ -63,6 +74,7 @@ def test_missing_units():
             pdb_path="test.pdb"
         )
 
+@pytest.mark.core_functionality
 def test_loss_evaluation(chemical_loss_handler):
     """Test that loss evaluation returns correct shape and type."""
     # Create a batch of positions
