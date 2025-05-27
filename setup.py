@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
-        "torch>=2.5.1",
+        "torch>=2.0.0",
         "mdtraj>=1.10.3",
         "numpy>=1.26.3",
         # Additional dependencies may be needed
