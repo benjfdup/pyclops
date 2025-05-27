@@ -133,31 +133,37 @@ PyClops supports various cyclization chemistries, including:
 ## Project Structure
 
 ```
-PyClops/
-├── pyclops/
+pyclops/
+├── __init__.py
+├── core/
 │   ├── __init__.py
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── chemical_loss.py  # Core loss function infrastructure
-│   │   ├── loss_handler.py   # Management of multiple loss functions
-│   │   └── loss_coeff.py     # Time-dependent loss coefficients
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── constants.py      # Physical constants and parameters
-│   │   ├── geometry.py       # Geometric calculations and transformations
-│   │   └── indexing.py       # Atom and residue indexing utilities
-│   └── losses/
-│       ├── __init__.py
-│       ├── carboxylic_carbo.py # Carboxyl-based cyclization chemistries
-│       ├── disulfide.py      # Disulfide bond formation
-│       ├── amide_losses.py   # Amide bond cyclization
-│       ├── cysteine_carbo.py # Cysteine-carboxyl interactions
-│       ├── lys_arg.py        # Lysine-arginine interactions
-│       ├── lys_tyr.py        # Lysine-tyrosine interactions
-│       └── standard_kde_locations.py # KDE model file paths
-└── examples/
-    ├── basic_usage.py        # Simple usage examples
-    └── custom_losses.py      # How to define custom loss functions
+│   ├── chemical_loss.py          # Core chemical loss function infrastructure
+│   ├── chemical_loss_handler.py  # Handler for chemical loss functions
+│   ├── gyration_loss_handler.py  # Handler for gyration-based losses
+│   ├── loss_coeff.py            # Time-dependent loss coefficients
+│   ├── loss_handler.py          # Base loss handler functionality
+│   ├── meta_loss_handler.py     # Meta-level loss handling
+│   └── motif_loss_handler.py    # Motif-specific loss handling
+├── utils/
+│   ├── __init__.py
+│   ├── constants.py             # Physical constants and parameters
+│   ├── default_strategies.py    # Default loss computation strategies
+│   ├── indexing.py              # Atom and residue indexing utilities
+│   └── utils.py                 # General utility functions
+├── losses/
+│   ├── __init__.py
+│   ├── kdes/                    # Kernel density estimation models
+│   ├── carboxylic_carbo.py      # Carboxyl-based cyclization chemistries
+│   ├── disulfide.py            # Disulfide bond formation
+│   ├── amide_losses.py         # Amide bond cyclization
+│   ├── cysteine_carbo.py       # Cysteine-carboxyl interactions
+│   ├── lys_arg.py              # Lysine-arginine interactions
+│   ├── lys_tyr.py              # Lysine-tyrosine interactions
+│   └── standard_kde_locations.py # KDE model file paths
+├── torchkde/                    # Kernel density estimation implementation
+├── tests/                       # Test suite
+├── setup.py                     # Package installation configuration
+└── README.md                    # This documentation file
 ```
 
 ## Citation
