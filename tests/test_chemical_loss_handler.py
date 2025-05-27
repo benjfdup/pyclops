@@ -7,43 +7,19 @@ import numpy as np
 from pyclops.core.chemical_loss_handler import ChemicalLossHandler
 from pyclops.utils.constants import KB
 
-# Test data directory - we'll need to create this
-TEST_DATA_DIR = Path(__file__).parent / "test_data"
-
 @pytest.fixture
-def sample_pdb_path(tmp_path):
-    """Create a simple test PDB file with a few residues."""
-    pdb_content = """ATOM      1  N   ALA     1      27.346  24.516   5.362  1.00  0.00
-ATOM      2  CA  ALA     1      26.166  25.411   5.362  1.00  0.00
-ATOM      3  C   ALA     1      25.000  24.516   5.362  1.00  0.00
-ATOM      4  O   ALA     1      24.000  25.000   5.362  1.00  0.00
-ATOM      5  CB  ALA     1      26.166  26.000   6.800  1.00  0.00
-ATOM      6  N   CYS     2      25.000  23.000   5.362  1.00  0.00
-ATOM      7  CA  CYS     2      24.000  22.000   5.362  1.00  0.00
-ATOM      8  C   CYS     2      23.000  22.500   5.362  1.00  0.00
-ATOM      9  O   CYS     2      22.000  22.000   5.362  1.00  0.00
-ATOM     10  CB  CYS     2      24.500  21.000   6.300  1.00  0.00
-ATOM     11  SG  CYS     2      25.500  20.000   6.300  1.00  0.00
-TER
-END"""
-    
-    pdb_file = tmp_path / "test.pdb"
-    pdb_file.write_text(pdb_content)
-    return pdb_file
-
-@pytest.fixture
-def chemical_loss_handler(sample_pdb_path):
-    """Create a ChemicalLossHandler instance for testing."""
+def chemical_loss_handler(chignolin_pdb):
+    """Create a ChemicalLossHandler instance for testing using chignolin PDB."""
     return ChemicalLossHandler.from_pdb(
-        pdb_path=sample_pdb_path,
+        pdb_path=chignolin_pdb,
         units="angstroms",
         temp=300.0,
         alpha=-3.0
     )
 
-def test_initialization(chemical_loss_handler, sample_pdb_path):
+def test_initialization(chemical_loss_handler, chignolin_pdb):
     """Test basic initialization of ChemicalLossHandler."""
-    assert chemical_loss_handler.pdb_path == sample_pdb_path
+    assert chemical_loss_handler.pdb_path == chignolin_pdb
     assert chemical_loss_handler.temp == 300.0
     assert chemical_loss_handler.alpha == -3.0
     assert isinstance(chemical_loss_handler.device, torch.device)
@@ -154,11 +130,11 @@ def test_inspect_losses(chemical_loss_handler):
     # This should not raise any exceptions
     chemical_loss_handler.inspect_losses(positions, top_k=3)
 
-def test_mask_functionality(sample_pdb_path):
+def test_mask_functionality(chignolin_pdb):
     """Test that masking residues works correctly."""
     # Create handler with masked residues
     handler = ChemicalLossHandler.from_pdb(
-        pdb_path=sample_pdb_path,
+        pdb_path=chignolin_pdb,
         units="angstroms",
         mask={0}  # Mask first residue
     )
@@ -168,4 +144,26 @@ def test_mask_functionality(sample_pdb_path):
         atom_indices = list(loss.atom_idxs.values())
         for idx in atom_indices:
             # Check that no atom from masked residue is used
-            assert handler.traj.topology.atom(idx).residue.index != 0 
+            assert handler.traj.topology.atom(idx).residue.index != 0
+
+def test_multiple_peptides(peptide_pdb_files):
+    """Test ChemicalLossHandler with multiple peptide structures."""
+    for name, pdb_file in peptide_pdb_files.items():
+        handler = ChemicalLossHandler.from_pdb(
+            pdb_path=pdb_file,
+            units="angstroms"
+        )
+        
+        # Basic validation
+        assert handler.pdb_path == pdb_file
+        assert handler.traj.n_atoms > 0
+        
+        # Test loss evaluation
+        n_atoms = handler.traj.n_atoms
+        positions = torch.randn(1, n_atoms, 3)
+        loss = handler(positions)
+        
+        assert isinstance(loss, torch.Tensor)
+        assert loss.shape == (1,)
+        assert not torch.isnan(loss).any()
+        assert not torch.isinf(loss).any() 

@@ -41,4 +41,26 @@ def device(request):
     """Provide different devices for testing."""
     if request.param == "cuda" and not torch.cuda.is_available():
         pytest.skip("CUDA not available")
-    return torch.device(request.param) 
+    return torch.device(request.param)
+
+# Fixture to provide access to peptide PDB files
+@pytest.fixture(scope="session")
+def peptide_pdb_files():
+    """Provide access to peptide PDB files in the tests/peptides directory."""
+    peptides_dir = Path(__file__).parent / "peptides"
+    if not peptides_dir.exists():
+        raise FileNotFoundError(f"Peptides directory not found at {peptides_dir}")
+    
+    pdb_files = list(peptides_dir.glob("*.pdb"))
+    if not pdb_files:
+        raise FileNotFoundError(f"No PDB files found in {peptides_dir}")
+    
+    return {pdb_file.stem: pdb_file for pdb_file in pdb_files}
+
+# Fixture to provide a specific peptide PDB file
+@pytest.fixture
+def chignolin_pdb(peptide_pdb_files):
+    """Provide the chignolin PDB file."""
+    if "chignolin" not in peptide_pdb_files:
+        raise FileNotFoundError("chignolin.pdb not found in peptides directory")
+    return peptide_pdb_files["chignolin"] 

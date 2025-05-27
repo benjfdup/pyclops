@@ -1,0 +1,337 @@
+TITLE     MDANALYSIS FRAMES FROM 0, STEP 1: Created by PDBWriter
+CRYST1   56.572   56.572   56.572  60.00  60.00  90.00 P 1           1
+MODEL        1
+ATOM      1  N   TYR X   1      28.940  43.650  12.220  1.00  0.00      seg_ N  
+ATOM      2  H1  TYR X   1      28.670  44.330  11.530  1.00  0.00      seg_ H  
+ATOM      3  H2  TYR X   1      28.580  42.760  11.900  1.00  0.00      seg_ H  
+ATOM      4  H3  TYR X   1      28.420  43.870  13.050  1.00  0.00      seg_ H  
+ATOM      5  CA  TYR X   1      30.440  43.790  12.270  1.00  0.00      seg_ C  
+ATOM      6  HA  TYR X   1      30.880  43.490  11.320  1.00  0.00      seg_ H  
+ATOM      7  CB  TYR X   1      30.790  45.260  12.400  1.00  0.00      seg_ C  
+ATOM      8  HB1 TYR X   1      31.870  45.250  12.260  1.00  0.00      seg_ H  
+ATOM      9  HB2 TYR X   1      30.520  45.750  13.340  1.00  0.00      seg_ H  
+ATOM     10  CG  TYR X   1      30.270  46.180  11.290  1.00  0.00      seg_ C  
+ATOM     11  CD1 TYR X   1      31.030  46.370  10.140  1.00  0.00      seg_ C  
+ATOM     12  HD1 TYR X   1      31.940  45.800  10.000  1.00  0.00      seg_ H  
+ATOM     13  CE1 TYR X   1      30.600  47.320   9.220  1.00  0.00      seg_ C  
+ATOM     14  HE1 TYR X   1      31.190  47.400   8.320  1.00  0.00      seg_ H  
+ATOM     15  CZ  TYR X   1      29.460  48.140   9.400  1.00  0.00      seg_ C  
+ATOM     16  OH  TYR X   1      29.200  49.080   8.450  1.00  0.00      seg_ O  
+ATOM     17  HH  TYR X   1      28.510  49.690   8.720  1.00  0.00      seg_ H  
+ATOM     18  CE2 TYR X   1      28.750  47.940  10.610  1.00  0.00      seg_ C  
+ATOM     19  HE2 TYR X   1      27.840  48.520  10.730  1.00  0.00      seg_ H  
+ATOM     20  CD2 TYR X   1      29.150  46.970  11.500  1.00  0.00      seg_ C  
+ATOM     21  HD2 TYR X   1      28.650  46.920  12.450  1.00  0.00      seg_ H  
+ATOM     22  C   TYR X   1      31.170  42.980  13.370  1.00  0.00      seg_ C  
+ATOM     23  O   TYR X   1      30.920  43.150  14.590  1.00  0.00      seg_ O  
+ATOM     24  N   TYR X   2      32.230  42.310  12.960  1.00  0.00      seg_ N  
+ATOM     25  H   TYR X   2      32.470  42.290  11.980  1.00  0.00      seg_ H  
+ATOM     26  CA  TYR X   2      33.040  41.500  13.910  1.00  0.00      seg_ C  
+ATOM     27  HA  TYR X   2      32.950  41.830  14.940  1.00  0.00      seg_ H  
+ATOM     28  CB  TYR X   2      32.550  40.040  13.830  1.00  0.00      seg_ C  
+ATOM     29  HB1 TYR X   2      33.220  39.360  14.370  1.00  0.00      seg_ H  
+ATOM     30  HB2 TYR X   2      32.530  39.660  12.810  1.00  0.00      seg_ H  
+ATOM     31  CG  TYR X   2      31.130  39.810  14.370  1.00  0.00      seg_ C  
+ATOM     32  CD1 TYR X   2      30.980  39.810  15.730  1.00  0.00      seg_ C  
+ATOM     33  HD1 TYR X   2      31.890  39.920  16.310  1.00  0.00      seg_ H  
+ATOM     34  CE1 TYR X   2      29.720  39.740  16.310  1.00  0.00      seg_ C  
+ATOM     35  HE1 TYR X   2      29.670  39.740  17.390  1.00  0.00      seg_ H  
+ATOM     36  CZ  TYR X   2      28.540  39.640  15.500  1.00  0.00      seg_ C  
+ATOM     37  OH  TYR X   2      27.280  39.500  15.940  1.00  0.00      seg_ O  
+ATOM     38  HH  TYR X   2      26.680  39.690  15.220  1.00  0.00      seg_ H  
+ATOM     39  CE2 TYR X   2      28.750  39.580  14.110  1.00  0.00      seg_ C  
+ATOM     40  HE2 TYR X   2      27.910  39.500  13.440  1.00  0.00      seg_ H  
+ATOM     41  CD2 TYR X   2      30.060  39.570  13.550  1.00  0.00      seg_ C  
+ATOM     42  HD2 TYR X   2      30.180  39.440  12.480  1.00  0.00      seg_ H  
+ATOM     43  C   TYR X   2      34.540  41.570  13.560  1.00  0.00      seg_ C  
+ATOM     44  O   TYR X   2      34.900  41.250  12.390  1.00  0.00      seg_ O  
+ATOM     45  N   ASP X   3      35.450  41.850  14.550  1.00  0.00      seg_ N  
+ATOM     46  H   ASP X   3      35.120  41.970  15.500  1.00  0.00      seg_ H  
+ATOM     47  CA  ASP X   3      36.850  42.160  14.300  1.00  0.00      seg_ C  
+ATOM     48  HA  ASP X   3      37.150  41.750  13.340  1.00  0.00      seg_ H  
+ATOM     49  CB  ASP X   3      37.180  43.570  14.000  1.00  0.00      seg_ C  
+ATOM     50  HB1 ASP X   3      36.970  44.050  14.960  1.00  0.00      seg_ H  
+ATOM     51  HB2 ASP X   3      36.510  43.860  13.190  1.00  0.00      seg_ H  
+ATOM     52  CG  ASP X   3      38.590  44.000  13.620  1.00  0.00      seg_ C  
+ATOM     53  OD1 ASP X   3      39.180  43.330  12.720  1.00  0.00      seg_ O  
+ATOM     54  OD2 ASP X   3      39.040  45.090  14.070  1.00  0.00      seg_ O  
+ATOM     55  C   ASP X   3      37.730  41.470  15.430  1.00  0.00      seg_ C  
+ATOM     56  O   ASP X   3      37.490  41.920  16.590  1.00  0.00      seg_ O  
+ATOM     57  N   PRO X   4      38.650  40.530  15.070  1.00  0.00      seg_ N  
+ATOM     58  CD  PRO X   4      38.880  39.900  13.770  1.00  0.00      seg_ C  
+ATOM     59  HD1 PRO X   4      39.020  40.720  13.060  1.00  0.00      seg_ H  
+ATOM     60  HD2 PRO X   4      38.060  39.210  13.580  1.00  0.00      seg_ H  
+ATOM     61  CG  PRO X   4      40.290  39.270  13.810  1.00  0.00      seg_ C  
+ATOM     62  HG1 PRO X   4      41.070  39.960  13.500  1.00  0.00      seg_ H  
+ATOM     63  HG2 PRO X   4      40.340  38.350  13.240  1.00  0.00      seg_ H  
+ATOM     64  CB  PRO X   4      40.330  39.010  15.290  1.00  0.00      seg_ C  
+ATOM     65  HB1 PRO X   4      41.340  38.870  15.690  1.00  0.00      seg_ H  
+ATOM     66  HB2 PRO X   4      39.690  38.150  15.460  1.00  0.00      seg_ H  
+ATOM     67  CA  PRO X   4      39.590  40.050  16.090  1.00  0.00      seg_ C  
+ATOM     68  HA  PRO X   4      38.970  39.630  16.880  1.00  0.00      seg_ H  
+ATOM     69  C   PRO X   4      40.500  41.160  16.570  1.00  0.00      seg_ C  
+ATOM     70  O   PRO X   4      40.890  42.090  15.830  1.00  0.00      seg_ O  
+ATOM     71  N   GLU X   5      40.860  40.980  17.860  1.00  0.00      seg_ N  
+ATOM     72  H   GLU X   5      40.550  40.180  18.390  1.00  0.00      seg_ H  
+ATOM     73  CA  GLU X   5      41.570  42.020  18.630  1.00  0.00      seg_ C  
+ATOM     74  HA  GLU X   5      42.140  42.540  17.860  1.00  0.00      seg_ H  
+ATOM     75  CB  GLU X   5      40.580  43.090  19.220  1.00  0.00      seg_ C  
+ATOM     76  HB1 GLU X   5      40.030  42.740  20.090  1.00  0.00      seg_ H  
+ATOM     77  HB2 GLU X   5      39.840  43.360  18.460  1.00  0.00      seg_ H  
+ATOM     78  CG  GLU X   5      41.330  44.400  19.740  1.00  0.00      seg_ C  
+ATOM     79  HG1 GLU X   5      41.720  44.970  18.900  1.00  0.00      seg_ H  
+ATOM     80  HG2 GLU X   5      42.170  44.070  20.350  1.00  0.00      seg_ H  
+ATOM     81  CD  GLU X   5      40.520  45.400  20.480  1.00  0.00      seg_ C  
+ATOM     82  OE1 GLU X   5      39.330  45.170  20.680  1.00  0.00      seg_ O  
+ATOM     83  OE2 GLU X   5      41.050  46.440  20.860  1.00  0.00      seg_ O  
+ATOM     84  C   GLU X   5      42.380  41.430  19.770  1.00  0.00      seg_ C  
+ATOM     85  O   GLU X   5      41.810  41.050  20.770  1.00  0.00      seg_ O  
+ATOM     86  N   THR X   6      43.720  41.380  19.630  1.00  0.00      seg_ N  
+ATOM     87  H   THR X   6      44.140  41.650  18.760  1.00  0.00      seg_ H  
+ATOM     88  CA  THR X   6      44.580  40.770  20.610  1.00  0.00      seg_ C  
+ATOM     89  HA  THR X   6      44.010  40.290  21.400  1.00  0.00      seg_ H  
+ATOM     90  CB  THR X   6      45.370  39.600  20.000  1.00  0.00      seg_ C  
+ATOM     91  HB  THR X   6      46.110  40.070  19.360  1.00  0.00      seg_ H  
+ATOM     92  CG2 THR X   6      46.110  38.710  21.010  1.00  0.00      seg_ C  
+ATOM     93 HG21 THR X   6      47.030  39.220  21.290  1.00  0.00      seg_ H  
+ATOM     94 HG22 THR X   6      45.480  38.640  21.900  1.00  0.00      seg_ H  
+ATOM     95 HG23 THR X   6      46.280  37.730  20.560  1.00  0.00      seg_ H  
+ATOM     96  OG1 THR X   6      44.370  38.850  19.390  1.00  0.00      seg_ O  
+ATOM     97  HG1 THR X   6      44.150  39.190  18.520  1.00  0.00      seg_ H  
+ATOM     98  C   THR X   6      45.510  41.850  21.220  1.00  0.00      seg_ C  
+ATOM     99  O   THR X   6      45.950  42.690  20.480  1.00  0.00      seg_ O  
+ATOM    100  N   GLY X   7      45.680  41.830  22.580  1.00  0.00      seg_ N  
+ATOM    101  H   GLY X   7      45.220  41.130  23.140  1.00  0.00      seg_ H  
+ATOM    102  CA  GLY X   7      46.220  42.940  23.290  1.00  0.00      seg_ C  
+ATOM    103  HA1 GLY X   7      45.380  43.490  23.720  1.00  0.00      seg_ H  
+ATOM    104  HA2 GLY X   7      46.830  43.630  22.720  1.00  0.00      seg_ H  
+ATOM    105  C   GLY X   7      47.030  42.440  24.440  1.00  0.00      seg_ C  
+ATOM    106  O   GLY X   7      46.440  41.760  25.250  1.00  0.00      seg_ O  
+ATOM    107  N   THR X   8      48.360  42.610  24.480  1.00  0.00      seg_ N  
+ATOM    108  H   THR X   8      48.720  43.280  23.810  1.00  0.00      seg_ H  
+ATOM    109  CA  THR X   8      49.310  41.990  25.450  1.00  0.00      seg_ C  
+ATOM    110  HA  THR X   8      48.730  41.680  26.320  1.00  0.00      seg_ H  
+ATOM    111  CB  THR X   8      50.030  40.740  24.890  1.00  0.00      seg_ C  
+ATOM    112  HB  THR X   8      50.800  40.970  24.160  1.00  0.00      seg_ H  
+ATOM    113  CG2 THR X   8      50.800  40.080  26.010  1.00  0.00      seg_ C  
+ATOM    114 HG21 THR X   8      50.260  40.100  26.960  1.00  0.00      seg_ H  
+ATOM    115 HG22 THR X   8      51.060  39.030  25.880  1.00  0.00      seg_ H  
+ATOM    116 HG23 THR X   8      51.740  40.630  26.150  1.00  0.00      seg_ H  
+ATOM    117  OG1 THR X   8      49.090  39.900  24.320  1.00  0.00      seg_ O  
+ATOM    118  HG1 THR X   8      49.390  39.530  23.480  1.00  0.00      seg_ H  
+ATOM    119  C   THR X   8      50.290  42.980  25.890  1.00  0.00      seg_ C  
+ATOM    120  O   THR X   8      50.720  43.730  25.000  1.00  0.00      seg_ O  
+ATOM    121  N   TRP X   9      50.600  42.980  27.170  1.00  0.00      seg_ N  
+ATOM    122  H   TRP X   9      50.140  42.240  27.680  1.00  0.00      seg_ H  
+ATOM    123  CA  TRP X   9      51.650  43.880  27.750  1.00  0.00      seg_ C  
+ATOM    124  HA  TRP X   9      52.430  43.960  26.990  1.00  0.00      seg_ H  
+ATOM    125  CB  TRP X   9      51.050  45.280  28.060  1.00  0.00      seg_ C  
+ATOM    126  HB1 TRP X   9      51.810  45.900  28.540  1.00  0.00      seg_ H  
+ATOM    127  HB2 TRP X   9      50.200  45.170  28.740  1.00  0.00      seg_ H  
+ATOM    128  CG  TRP X   9      50.530  45.990  26.870  1.00  0.00      seg_ C  
+ATOM    129  CD1 TRP X   9      49.230  46.230  26.550  1.00  0.00      seg_ C  
+ATOM    130  HD1 TRP X   9      48.350  45.810  27.030  1.00  0.00      seg_ H  
+ATOM    131  NE1 TRP X   9      49.210  46.980  25.420  1.00  0.00      seg_ N  
+ATOM    132  HE1 TRP X   9      48.340  47.140  24.920  1.00  0.00      seg_ H  
+ATOM    133  CE2 TRP X   9      50.390  47.380  24.970  1.00  0.00      seg_ C  
+ATOM    134  CZ2 TRP X   9      50.780  48.030  23.830  1.00  0.00      seg_ C  
+ATOM    135  HZ2 TRP X   9      50.010  48.350  23.140  1.00  0.00      seg_ H  
+ATOM    136  CH2 TRP X   9      52.130  48.060  23.470  1.00  0.00      seg_ C  
+ATOM    137  HH2 TRP X   9      52.510  48.500  22.560  1.00  0.00      seg_ H  
+ATOM    138  CZ3 TRP X   9      53.080  47.450  24.300  1.00  0.00      seg_ C  
+ATOM    139  HZ3 TRP X   9      54.110  47.630  24.050  1.00  0.00      seg_ H  
+ATOM    140  CE3 TRP X   9      52.660  46.760  25.440  1.00  0.00      seg_ C  
+ATOM    141  HE3 TRP X   9      53.340  46.350  26.180  1.00  0.00      seg_ H  
+ATOM    142  CD2 TRP X   9      51.240  46.660  25.810  1.00  0.00      seg_ C  
+ATOM    143  C   TRP X   9      52.320  43.270  28.970  1.00  0.00      seg_ C  
+ATOM    144  O   TRP X   9      51.680  43.140  30.030  1.00  0.00      seg_ O  
+ATOM    145  N   TYR X  10      53.660  43.110  29.040  1.00  0.00      seg_ N  
+ATOM    146  H   TYR X  10      54.220  43.270  28.210  1.00  0.00      seg_ H  
+ATOM    147  CA  TYR X  10      54.360  42.520  30.200  1.00  0.00      seg_ C  
+ATOM    148  HA  TYR X  10      53.610  42.300  30.950  1.00  0.00      seg_ H  
+ATOM    149  CB  TYR X  10      55.040  41.210  29.680  1.00  0.00      seg_ C  
+ATOM    150  HB1 TYR X  10      55.680  40.770  30.450  1.00  0.00      seg_ H  
+ATOM    151  HB2 TYR X  10      55.650  41.450  28.820  1.00  0.00      seg_ H  
+ATOM    152  CG  TYR X  10      53.970  40.150  29.460  1.00  0.00      seg_ C  
+ATOM    153  CD1 TYR X  10      52.880  40.030  30.300  1.00  0.00      seg_ C  
+ATOM    154  HD1 TYR X  10      52.750  40.620  31.190  1.00  0.00      seg_ H  
+ATOM    155  CE1 TYR X  10      51.900  39.060  30.120  1.00  0.00      seg_ C  
+ATOM    156  HE1 TYR X  10      51.080  38.970  30.810  1.00  0.00      seg_ H  
+ATOM    157  CZ  TYR X  10      52.010  38.270  28.910  1.00  0.00      seg_ C  
+ATOM    158  OH  TYR X  10      51.030  37.340  28.720  1.00  0.00      seg_ O  
+ATOM    159  HH  TYR X  10      51.090  36.710  27.990  1.00  0.00      seg_ H  
+ATOM    160  CE2 TYR X  10      53.000  38.440  27.940  1.00  0.00      seg_ C  
+ATOM    161  HE2 TYR X  10      53.000  37.830  27.050  1.00  0.00      seg_ H  
+ATOM    162  CD2 TYR X  10      54.020  39.370  28.240  1.00  0.00      seg_ C  
+ATOM    163  HD2 TYR X  10      54.890  39.490  27.610  1.00  0.00      seg_ H  
+ATOM    164  C   TYR X  10      55.360  43.500  30.730  1.00  0.00      seg_ C  
+ATOM    165  OC1 TYR X  10      55.970  43.260  31.810  1.00  0.00      seg_ O  
+ATOM    166  OC2 TYR X  10      55.550  44.620  30.240  1.00  0.00      seg_ O  
+ENDMDL
+CONECT    1    2    3    4    5
+CONECT    2    1
+CONECT    3    1
+CONECT    4    1
+CONECT    5    1    6    7   22
+CONECT    6    5
+CONECT    7    5    8    9   10
+CONECT    8    7
+CONECT    9    7
+CONECT   10    7   11   20
+CONECT   11   10   12   13
+CONECT   12   11
+CONECT   13   11   14   15
+CONECT   14   13
+CONECT   15   13   16   18
+CONECT   16   15   17
+CONECT   17   16
+CONECT   18   15   19   20
+CONECT   19   18
+CONECT   20   10   18   21
+CONECT   21   20
+CONECT   22    5   23   24
+CONECT   23   22
+CONECT   24   22   25   26
+CONECT   25   24
+CONECT   26   24   27   28   43
+CONECT   27   26
+CONECT   28   26   29   30   31
+CONECT   29   28
+CONECT   30   28
+CONECT   31   28   32   41
+CONECT   32   31   33   34
+CONECT   33   32
+CONECT   34   32   35   36
+CONECT   35   34
+CONECT   36   34   37   39
+CONECT   37   36   38
+CONECT   38   37
+CONECT   39   36   40   41
+CONECT   40   39
+CONECT   41   31   39   42
+CONECT   42   41
+CONECT   43   26   44   45
+CONECT   44   43
+CONECT   45   43   46   47
+CONECT   46   45
+CONECT   47   45   48   49   55
+CONECT   48   47
+CONECT   49   47   50   51   52
+CONECT   50   49
+CONECT   51   49
+CONECT   52   49   53   54
+CONECT   53   52
+CONECT   54   52
+CONECT   55   47   56   57
+CONECT   56   55
+CONECT   57   55   58   67
+CONECT   58   57   59   60   61
+CONECT   59   58
+CONECT   60   58
+CONECT   61   58   62   63   64
+CONECT   62   61
+CONECT   63   61
+CONECT   64   61   65   66   67
+CONECT   65   64
+CONECT   66   64
+CONECT   67   57   64   68   69
+CONECT   68   67
+CONECT   69   67   70   71
+CONECT   70   69
+CONECT   71   69   72   73
+CONECT   72   71
+CONECT   73   71   74   75   84
+CONECT   74   73
+CONECT   75   73   76   77   78
+CONECT   76   75
+CONECT   77   75
+CONECT   78   75   79   80   81
+CONECT   79   78
+CONECT   80   78
+CONECT   81   78   82   83
+CONECT   82   81
+CONECT   83   81
+CONECT   84   73   85   86
+CONECT   85   84
+CONECT   86   84   87   88
+CONECT   87   86
+CONECT   88   86   89   90   98
+CONECT   89   88
+CONECT   90   88   91   92   96
+CONECT   91   90
+CONECT   92   90   93   94   95
+CONECT   93   92
+CONECT   94   92
+CONECT   95   92
+CONECT   96   90   97
+CONECT   97   96
+CONECT   98   88   99  100
+CONECT   99   98
+CONECT  100   98  101  102
+CONECT  101  100
+CONECT  102  100  103  104  105
+CONECT  103  102
+CONECT  104  102
+CONECT  105  102  106  107
+CONECT  106  105
+CONECT  107  105  108  109
+CONECT  108  107
+CONECT  109  107  110  111  119
+CONECT  110  109
+CONECT  111  109  112  113  117
+CONECT  112  111
+CONECT  113  111  114  115  116
+CONECT  114  113
+CONECT  115  113
+CONECT  116  113
+CONECT  117  111  118
+CONECT  118  117
+CONECT  119  109  120  121
+CONECT  120  119
+CONECT  121  119  122  123
+CONECT  122  121
+CONECT  123  121  124  125  143
+CONECT  124  123
+CONECT  125  123  126  127  128
+CONECT  126  125
+CONECT  127  125
+CONECT  128  125  129  142
+CONECT  129  128  130  131
+CONECT  130  129
+CONECT  131  129  132  133
+CONECT  132  131
+CONECT  133  131  134  142
+CONECT  134  133  135  136
+CONECT  135  134
+CONECT  136  134  137  138
+CONECT  137  136
+CONECT  138  136  139  140
+CONECT  139  138
+CONECT  140  138  141  142
+CONECT  141  140
+CONECT  142  128  133  140
+CONECT  143  123  144  145
+CONECT  144  143
+CONECT  145  143  146  147
+CONECT  146  145
+CONECT  147  145  148  149  164
+CONECT  148  147
+CONECT  149  147  150  151  152
+CONECT  150  149
+CONECT  151  149
+CONECT  152  149  153  162
+CONECT  153  152  154  155
+CONECT  154  153
+CONECT  155  153  156  157
+CONECT  156  155
+CONECT  157  155  158  160
+CONECT  158  157  159
+CONECT  159  158
+CONECT  160  157  161  162
+CONECT  161  160
+CONECT  162  152  160  163
+CONECT  163  162
+CONECT  164  147  165  166
+CONECT  165  164
+CONECT  166  164
+END
