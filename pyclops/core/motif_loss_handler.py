@@ -100,6 +100,10 @@ class MotifLossHandler(LossHandler):
             Loss values of shape [batch_size,] in angstroms.
         '''
         if self._motif.device != positions.device:
+            warnings.warn(
+                f"Motif and positions are on different devices. "
+                "Moving motif to positions device."
+                )
             self.motif_to(positions.device)
             
         return motif_loss(positions, self._motif, tolerance=self._tolerance, squared=self._squared)
