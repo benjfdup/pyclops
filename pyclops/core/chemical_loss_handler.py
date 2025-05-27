@@ -96,7 +96,10 @@ class ChemicalLossHandler(LossHandler):
                  offsets: Optional[Dict[Type[ChemicalLoss], float]] = None,
                  temp: float = 300.0,
                  alpha: float = -3.0,
-                 device: Optional[torch.device] = None):
+                 mask: Optional[Set[int]] = None, 
+                 # can mask certain residues from consideration when initializing losses.
+                 device: Optional[torch.device] = None,
+                 ):
         """
         Initialize a ChemicalLossHandler with detailed control over parameters.
         
@@ -120,7 +123,7 @@ class ChemicalLossHandler(LossHandler):
         assert temp > 0, f"Temperature (temp) must be positive, but got {temp}."
         self._temp = temp
         self._alpha = alpha
-        
+
         # Set device
         self._device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -128,6 +131,9 @@ class ChemicalLossHandler(LossHandler):
         self._traj = md.load(str(self._pdb_path))
         self._topology = self._traj.topology
         
+        self._mask: Set[int] = mask or set()
+        self._validate_mask()
+
         # Initialize losses and build resonance groups
         self._initialize_losses()
         
@@ -199,6 +205,34 @@ class ChemicalLossHandler(LossHandler):
                     indices[(residue.index, name)] = atom.index
         return indices
     
+    def _validate_mask(self) -> None:
+        """
+        Validate the mask indices based on the topology and notify about masked residues.
+        """
+        # Validate mask indices if mask is not empty
+        if self._mask:
+            valid_indices = {res.index for res in self._topology.residues}
+            invalid_indices = self._mask - valid_indices
+            if invalid_indices:
+                raise ValueError(
+                    f"Invalid residue indices in mask: {invalid_indices}. "
+                    f"Valid indices range from 0 to {len(valid_indices)-1}."
+                )
+            
+            # Get residue information for masked residues
+            masked_residues = []
+            for res in self._topology.residues:
+                if res.index in self._mask:
+                    masked_residues.append(f"{res.name} {res.index}")
+            
+            if masked_residues:
+                print(f"\nMasking {len(masked_residues)} residues from cyclization chemistry:")
+                for res in masked_residues:
+                    print(f"  - {res}")
+                print("These residues will not participate in any cyclization reactions.\n")
+        else:
+            print("No residues masked from cyclization chemistry.")
+    
     def _initialize_losses(self) -> None:
         """
         Initialize all loss functions and organize them into resonance groups.
@@ -206,6 +240,8 @@ class ChemicalLossHandler(LossHandler):
         Resonant losses (same method between same residues but different atoms)
         are grouped together so only the minimum from each group contributes
         to the final soft minimum.
+        
+        Any losses involving masked residues (in self._mask) will be excluded.
         """
         if not self.strategies:
             raise ValueError(
@@ -230,6 +266,9 @@ class ChemicalLossHandler(LossHandler):
         # Create all loss instances
         for strat in self.strategies:
             for idxs_method_pair in strat.get_indexes_and_methods(traj, atom_idx_dict):
+                # Skip if either residue in the pair is masked
+                if self._mask and (idxs_method_pair.pair & self._mask):
+                    continue
                 
                 # Extract the base method (without resonance info) for grouping
                 method_base = idxs_method_pair.method.split(" (")[0]  # Remove resonance info
