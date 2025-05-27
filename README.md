@@ -153,6 +153,16 @@ pyclops/
 ├── losses/
 │   ├── __init__.py
 │   ├── kdes/                    # Kernel density estimation models
+│   │   ├── __init__.py
+│   │   ├── Amide_kde.pt                # Amide bond KDE model
+│   │   ├── Carboxylic-Carbo_kde.pt     # Carboxylic KDE model
+│   │   ├── Cys-Arg_kde.pt             # Cysteine-Arginine KDE model
+│   │   ├── Cys-Carboxyl_kde.pt        # Cysteine-Carboxyl KDE model
+│   │   ├── Disulfide_kde.pt           # Disulfide bond KDE model
+│   │   ├── Lys-Arg_kde.pt             # Lysine-Arginine KDE model
+│   │   ├── Lys-Tyr_kde.pt             # Lysine-Tyrosine KDE model
+│   │   ├── Sulfur-Mediated-Amide_kde.pt # Sulfur-mediated amide KDE model
+│   │   └── generate_kde.py            # KDE model generation script
 │   ├── carboxylic_carbo.py      # Carboxyl-based cyclization chemistries
 │   ├── disulfide.py            # Disulfide bond formation
 │   ├── amide_losses.py         # Amide bond cyclization
@@ -161,9 +171,32 @@ pyclops/
 │   ├── lys_tyr.py              # Lysine-tyrosine interactions
 │   └── standard_kde_locations.py # KDE model file paths
 ├── torchkde/                    # Kernel density estimation implementation
-├── tests/                       # Test suite
-├── setup.py                     # Package installation configuration
-└── README.md                    # This documentation file
+│   ├── __init__.py
+│   ├── algorithms.py           # KDE algorithms implementation
+│   ├── bandwidths.py          # Bandwidth selection methods
+│   ├── kernels.py             # Kernel function implementations
+│   ├── modules.py             # PyTorch modules for KDE
+│   ├── readme.md              # KDE implementation documentation
+│   └── utils.py               # KDE utility functions
+├── tests/                      # Test suite
+│   ├── __init__.py
+│   ├── conftest.py            # PyTest configuration
+│   ├── pyclops_test.ipynb     # Interactive testing notebook
+│   ├── README.md              # Testing documentation
+│   ├── test_chemical_loss_handler.py # Chemical loss handler tests
+│   └── peptides/              # Test peptide structures
+│       ├── __init__.py
+│       ├── README.md          # Peptide test data documentation
+│       ├── CDEKCG.pdb         # Test peptide structure
+│       ├── DDEEKKCGLCGR.pdb   # Test peptide structure
+│       ├── EQKCGDCTY.pdb      # Test peptide structure
+│       ├── KADGLYQ.pdb        # Test peptide structure
+│       ├── KDGEQRNCTYKA.pdb   # Test peptide structure
+│       ├── RKGEYH.pdb         # Test peptide structure
+│       ├── chignolin.pdb      # Test peptide structure
+│       └── pd1_binder.pdb     # Test peptide structure
+├── setup.py                    # Package installation configuration
+└── README.md                   # This documentation file
 ```
 
 ## Citation
