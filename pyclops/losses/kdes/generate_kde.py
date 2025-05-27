@@ -14,7 +14,7 @@ pyclops2_root = Path("/home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/new_kdes")
 sys.path.insert(0, str(pyclops2_root))
 
 # Now do a normal import
-from pyclops.pyclops.torchkde.modules import KernelDensity
+from pyclops.torchkde.modules import KernelDensity
 
 mol_names = ['Carboxylic-Carbo', 'Cys-Arg', 'Cys-Carboxyl', 'Disulfide', 'Lys-Arg', 'Lys-Tyr', 'Sulfur-Mediated-Amide', 'Amide']
 
@@ -94,5 +94,6 @@ for mol_name in mol_names:
     kde.fit(X)
 
     #print(f"KDE fitted with bandwidth {kde.bandwidth}")
-    torch.save(kde, f'{mol_name}_kde.pt')
+    save_path = os.path.join(os.path.dirname(__file__), f'{mol_name}_kde.pt')
+    torch.save(kde, save_path)
     #print('Saved!')
