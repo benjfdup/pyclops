@@ -25,6 +25,36 @@ class ChemicalLossHandler(LossHandler):
     Resonant structures (multiple atom choices for the same chemical interaction)
     are handled by taking the minimum loss within each resonance group before
     applying the soft minimum across all unique cyclization opportunities.
+
+    Parameters
+    ----------
+    pdb_path : Union[str, Path]
+        Path to the PDB file containing the peptide structure.
+    units_factor : float
+        Conversion factor to convert input coordinates to Angstroms.
+    strategies : Optional[Set[Type[ChemicalLoss]]]
+        Set of chemical loss strategies to consider. If None, uses default_strategies.
+    weights : Optional[Dict[Type[ChemicalLoss], float]]
+        Dictionary mapping loss types to their weights. If None, all weights are 1.0.
+    offsets : Optional[Dict[Type[ChemicalLoss], float]]
+        Dictionary mapping loss types to their offsets. If None, all offsets are 0.0.
+    temp : float, default=300.0
+        Temperature in Kelvin for energy calculations.
+    alpha : float, default=-3.0
+        Soft minimum parameter controlling the sharpness of the minimum.
+    mask : Optional[Set[int]]
+        Set of residue indices to exclude from cyclization consideration.
+    device : Optional[torch.device]
+        Device to use for computations. If None, uses CUDA if available, else CPU.
+
+    Attributes
+    ----------
+    default_strategies : Set[Type[ChemicalLoss]]
+        Default set of cyclization chemistries to consider.
+    bonding_atoms : Set[str]
+        Common atom names involved in cyclization reactions.
+    units_factors_dict : Dict[str, float]
+        Dictionary of unit conversion factors.
     """
     
     # Default set of cyclization chemistries to consider
@@ -48,12 +78,48 @@ class ChemicalLossHandler(LossHandler):
                 units_factor: Optional[float] = None, 
                 temp: float = 300.0,
                 alpha: float = -3.0,
+                mask: Optional[Set[int]] = None,
                 device: Optional[torch.device] = None,
                 **kwargs) -> "ChemicalLossHandler":
         """
         Create a ChemicalLossHandler from a PDB file with simplified parameters.
         
-        This is the recommended way to initialize a ChemicalLossHandler.
+        This is the recommended way to initialize a ChemicalLossHandler as it handles
+        unit conversion automatically.
+
+        Parameters
+        ----------
+        pdb_path : Union[str, Path]
+            Path to the PDB file containing the peptide structure.
+        units : Optional[str]
+            Name of the input coordinate units (e.g., 'nm', 'angstrom'). Must be one of
+            the keys in units_factors_dict.
+        units_factor : Optional[float]
+            Direct conversion factor to convert input coordinates to Angstroms.
+            Either units or units_factor must be provided, but not both.
+        temp : float, default=300.0
+            Temperature in Kelvin for energy calculations.
+        alpha : float, default=-3.0
+            Soft minimum parameter controlling the sharpness of the minimum.
+        mask : Optional[Set[int]]
+            Set of residue indices to exclude from cyclization consideration.
+        device : Optional[torch.device]
+            Device to use for computations. If None, uses CUDA if available, else CPU.
+        **kwargs : dict
+            Additional keyword arguments passed to the constructor.
+
+        Returns
+        -------
+        ChemicalLossHandler
+            A new instance of ChemicalLossHandler.
+
+        Raises
+        ------
+        ValueError
+            If both units and units_factor are provided, or if neither is provided.
+            If units is not a valid unit name.
+        FileNotFoundError
+            If the PDB file does not exist.
         """
         # Validate and determine units_factor
         if units is not None and units_factor is not None:
@@ -84,6 +150,7 @@ class ChemicalLossHandler(LossHandler):
             units_factor=units_factor,
             temp=temp,
             alpha=alpha,
+            mask=mask,
             device=device,
             **kwargs
         )
@@ -208,6 +275,14 @@ class ChemicalLossHandler(LossHandler):
     def _validate_mask(self) -> None:
         """
         Validate the mask indices based on the topology and notify about masked residues.
+        
+        This method checks if all masked residue indices are valid and prints
+        information about which residues are being masked from cyclization chemistry.
+
+        Raises
+        ------
+        ValueError
+            If any residue index in the mask is invalid (not present in the topology).
         """
         # Validate mask indices if mask is not empty
         if self._mask:
@@ -237,11 +312,16 @@ class ChemicalLossHandler(LossHandler):
         """
         Initialize all loss functions and organize them into resonance groups.
         
-        Resonant losses (same method between same residues but different atoms)
-        are grouped together so only the minimum from each group contributes
-        to the final soft minimum.
-        
-        Any losses involving masked residues (in self._mask) will be excluded.
+        This method:
+        1. Creates loss instances for each strategy and valid residue pair
+        2. Groups losses by resonance (same method between same residues but different atoms)
+        3. Excludes any losses involving masked residues
+        4. Stores both the grouped structure and a flat list of all losses
+
+        Raises
+        ------
+        ValueError
+            If no cyclization strategies are provided and default_strategies is empty.
         """
         if not self.strategies:
             raise ValueError(
@@ -302,18 +382,19 @@ class ChemicalLossHandler(LossHandler):
         """
         Evaluate the loss for a batch of atom positions.
         
-        For each resonance group, compute the minimum loss among all resonant
-        structures, then apply soft minimum across all unique cyclization opportunities.
-        
+        For each resonance group, computes the minimum loss among all resonant
+        structures, then applies soft minimum across all unique cyclization opportunities.
+
         Parameters
         ----------
         positions : torch.tensor
-            Tensor of shape (batch_size, n_atoms, 3) in Angstroms.
-        
+            Tensor of shape (batch_size, n_atoms, 3) containing atom positions in Angstroms.
+
         Returns
         -------
         torch.tensor
-            Tensor of shape (batch_size,) containing losses.
+            Tensor of shape (batch_size,) containing the combined loss values.
+            Returns zeros if no valid cyclizations were found.
         """
         if not self._resonance_groups:
             # Handle case where no valid cyclizations were found
@@ -387,7 +468,19 @@ class ChemicalLossHandler(LossHandler):
         """
         Get the loss with the smallest value for each structure in the batch.
         
-        This now returns the best loss considering resonance grouping.
+        This method considers resonance grouping, returning the best loss
+        (minimum value) for each structure.
+
+        Parameters
+        ----------
+        positions : torch.tensor
+            Tensor of shape (batch_size, n_atoms, 3) containing atom positions.
+
+        Returns
+        -------
+        List[ChemicalLoss]
+            List of ChemicalLoss instances, one for each structure in the batch,
+            representing the most favorable cyclization option.
         """
         positions_ang = self._convert_positions(positions)
         
@@ -424,6 +517,17 @@ class ChemicalLossHandler(LossHandler):
     def get_smallest_loss_methods(self, positions: torch.tensor) -> List[str]:
         """
         Get the method names of the smallest losses for each structure.
+
+        Parameters
+        ----------
+        positions : torch.tensor
+            Tensor of shape (batch_size, n_atoms, 3) containing atom positions.
+
+        Returns
+        -------
+        List[str]
+            List of method names, one for each structure in the batch,
+            describing the most favorable cyclization option.
         """
         return [loss.method for loss in self.get_smallest_loss(positions)]
     
@@ -431,7 +535,19 @@ class ChemicalLossHandler(LossHandler):
         """
         Get all individual loss values for each structure in the batch.
         
-        This returns the minimum loss for each resonance group.
+        This returns the minimum loss for each resonance group, considering
+        all possible cyclization options.
+
+        Parameters
+        ----------
+        positions : torch.tensor
+            Tensor of shape (batch_size, n_atoms, 3) containing atom positions.
+
+        Returns
+        -------
+        torch.tensor
+            Tensor of shape (batch_size, n_groups) containing the minimum loss
+            for each resonance group.
         """
         positions_ang = self._convert_positions(positions)
         batch_size = positions_ang.shape[0]
@@ -457,8 +573,19 @@ class ChemicalLossHandler(LossHandler):
     
     def summary(self) -> str:
         """
-        Generate a comprehensive human-readable summary of all detected cyclization options,
-        including detailed information about resonance groups, KDE models, and individual losses.
+        Generate a comprehensive human-readable summary of all detected cyclization options.
+        
+        The summary includes:
+        - Overview of total cyclization options and groups
+        - KDE models used and their statistics
+        - Strategy configuration details
+        - Detailed analysis of each cyclization group
+        - Statistics about resonant vs non-resonant groups
+
+        Returns
+        -------
+        str
+            A formatted string containing the complete summary.
         """
         if not self._resonance_groups:
             return "No valid cyclization sites found."
@@ -615,7 +742,20 @@ class ChemicalLossHandler(LossHandler):
     
     # Keep existing debugging and utility methods unchanged
     def validate_configuration(self) -> bool:
-        """Validate the handler configuration and provide verbose diagnostics."""
+        """
+        Validate the handler configuration and provide verbose diagnostics.
+        
+        Performs several checks:
+        1. Verifies that strategies are provided
+        2. Confirms that valid cyclization sites were found
+        3. Tests a sample calculation
+        4. Validates output shapes
+
+        Returns
+        -------
+        bool
+            True if all validation checks pass, False otherwise.
+        """
         valid = True
         messages = ["Validating ChemicalLossHandler configuration:"]
         
@@ -657,7 +797,21 @@ class ChemicalLossHandler(LossHandler):
         return valid
     
     def inspect_losses(self, positions: torch.tensor, top_k: int = 5) -> None:
-        """Inspect the top contributing loss terms for debugging."""
+        """
+        Inspect the top contributing loss terms for debugging purposes.
+        
+        For each structure in the batch (up to 3), prints:
+        - The combined soft-min loss
+        - The top K contributing cyclization groups
+        - Detailed information about each group
+
+        Parameters
+        ----------
+        positions : torch.tensor
+            Tensor of shape (batch_size, n_atoms, 3) containing atom positions.
+        top_k : int, default=5
+            Number of top contributing losses to display for each structure.
+        """
         if not self._resonance_groups:
             print("No resonance groups available to inspect.")
             return
