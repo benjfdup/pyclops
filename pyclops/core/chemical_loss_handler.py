@@ -306,7 +306,7 @@ class ChemicalLossHandler(LossHandler):
                     print(f"  - {res}")
                 print("These residues will not participate in any cyclization reactions.\n")
         else:
-            print("No residues masked from cyclization chemistry.")
+            pass
     
     def _initialize_losses(self) -> None:
         """
