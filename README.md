@@ -1,4 +1,4 @@
-# PyCLOPS: Cyclic Loss Operations for Peptide Structures
+# PyCLOPS: Cyclic Loss for Optimization of Peptide Structures
 
 PyCLOPS is a Python package for evaluating and optimizing cyclic peptide structures through specialized loss functions. It provides tools for detecting and scoring potential cyclization sites in peptide structures, computing energetic penalties based on molecular geometry, and guiding the optimization of cyclic peptide conformations.
 
