@@ -10,6 +10,7 @@ Cyclic peptides are important molecular structures in drug discovery and biochem
 - Evaluating the energetic favorability of different cyclization chemistries
 - Providing differentiable loss functions for peptide conformation optimization
 - Supporting time-dependent loss schedules for simulated annealing-like approaches
+- Visualizing protein structure properties through specialized plotting tools
 
 ## Key Features
 
@@ -19,6 +20,7 @@ Cyclic peptides are important molecular structures in drug discovery and biochem
 - **Batched Operations**: Efficient evaluation of many conformations in parallel using PyTorch
 - **Flexible Time-Dependent Losses**: Customize how losses change during optimization trajectories
 - **Extensible Framework**: Easily define custom cyclization chemistries and loss functions
+- **Structure Visualization**: Tools for analyzing protein structure properties through Ramachandran plots and other visualizations
 
 ## Installation
 
@@ -38,7 +40,7 @@ conda activate pyclops
 # Install dependencies
 conda install -c conda-forge mdtraj
 conda install pytorch -c pytorch
-pip install torchkde  # or other required packages not in conda
+pip install MDAnalysis matplotlib  # for visualization features
 
 # Install PyClops in development mode
 pip install -e .
@@ -61,13 +63,15 @@ pip install -e .
 - torch >=2.5.1
 - mdtraj >=1.10.3
 - numpy >=1.26.3
-- torch-kde >=0.1.4
+- MDAnalysis >=2.0.0
+- matplotlib >=3.0.0
 
 ## Quick Start
 
 ```python
 import torch
 from pyclops.core.loss_handler import ChemicalLossHandler
+from pyclops.metrics.visualization import ramachandran_plot
 
 # Create a handler from a PDB file
 handler = ChemicalLossHandler.from_pdb(
@@ -83,8 +87,13 @@ print(handler.summary())
 positions = torch.rand(32, 100, 3)  # 32 batch, 100 atoms, 3D coordinates
 loss = handler(positions)  # Returns [32] tensor of losses
 
-# Get information about which cyclization chemistry is energetically favorable
-best_loss_methods = handler.get_smallest_loss_methods(positions)
+# Generate a Ramachandran plot for the first frame
+fig, ax = ramachandran_plot(
+    coordinates=positions,
+    pdb_file="my_peptide.pdb",
+    frame_idx=0,
+    save_path="ramachandran.png"
+)
 ```
 
 ## Advanced Usage
@@ -144,6 +153,13 @@ pyclops/
 │   ├── loss_handler.py          # Base loss handler functionality
 │   ├── meta_loss_handler.py     # Meta-level loss handling
 │   └── motif_loss_handler.py    # Motif-specific loss handling
+├── metrics/
+│   ├── __init__.py
+│   ├── openmm/                  # OpenMM-specific metrics
+│   ├── rosetta/                 # Rosetta-specific metrics
+│   └── visualization/           # Structure visualization tools
+│       ├── __init__.py
+│       └── ramachandran.py      # Ramachandran plot functionality
 ├── utils/
 │   ├── __init__.py
 │   ├── constants.py             # Physical constants and parameters
