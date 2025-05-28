@@ -164,7 +164,6 @@ class ChemicalLossHandler(LossHandler):
                  temp: float = 300.0,
                  alpha: float = -3.0,
                  mask: Optional[Set[int]] = None, 
-                 # can mask certain residues from consideration when initializing losses.
                  device: Optional[torch.device] = None,
                  ):
         """
@@ -203,6 +202,9 @@ class ChemicalLossHandler(LossHandler):
 
         # Initialize losses and build resonance groups
         self._initialize_losses()
+        
+        # Compile _eval_loss after initialization
+        self._compile_eval_loss()
         
     @property
     def pdb_path(self) -> Path:
@@ -258,6 +260,11 @@ class ChemicalLossHandler(LossHandler):
     def topology(self) -> md.Topology:
         """MDTraj topology object."""
         return self._topology
+    
+    @property
+    def mask(self) -> Set[int]:
+        """Set of residue indices to exclude from cyclization consideration."""
+        return self._mask
     
     @staticmethod
     def precompute_atom_indices(residues, atom_names) -> Dict[Tuple[int, str], int]:
@@ -378,13 +385,78 @@ class ChemicalLossHandler(LossHandler):
         for group in resonance_groups.values():
             self._losses.extend(group)
     
+    def _compile_eval_loss(self) -> None:
+        """
+        Compile the _eval_loss method using torch.jit.script.
+        This is called after initialization when all parameters are fixed.
+        """
+        # Create a wrapper class to hold the compiled method
+        class CompiledEvalLoss(torch.nn.Module):
+            def __init__(self, handler):
+                super().__init__()
+                self.handler = handler
+                # Store all fixed parameters
+                self._resonance_groups = handler._resonance_groups
+                self._temp = handler._temp
+                self._alpha = handler._alpha
+                self._device = handler._device
+                self.KB = KB  # Boltzmann constant
+                
+            @torch.jit.script_method
+            def forward(self, positions: torch.Tensor) -> torch.Tensor:
+                if not self._resonance_groups:
+                    return torch.zeros(positions.shape[0], device=self._device)
+                
+                batch_size = positions.shape[0]
+                max_losses_per_group = max(len(losses) for losses in self._resonance_groups.values())
+                total_groups = len(self._resonance_groups)
+                
+                all_group_losses = torch.full(
+                    (batch_size, total_groups, max_losses_per_group),
+                    float('inf'),
+                    device=self._device
+                )
+                
+                for group_idx, (resonance_key, losses_in_group) in enumerate(self._resonance_groups.items()):
+                    group_losses = torch.full(
+                        (batch_size, len(losses_in_group)),
+                        float('inf'),
+                        device=self._device
+                    )
+                    
+                    for loss_idx, loss in enumerate(losses_in_group):
+                        vertex_indices = [loss.atom_idxs[key] for key in loss.atom_idxs_keys]
+                        vertex_positions = positions[:, vertex_indices, :]
+                        
+                        v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
+                        
+                        atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
+                        atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
+                        
+                        dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
+                        
+                        logP = loss.kde_pdf.score_samples(dists)
+                        energy = -self.KB * self._temp * logP
+                        scaled_energy = energy * loss.weight + loss.offset
+                        group_losses[:, loss_idx] = scaled_energy
+                    
+                    group_min = torch.min(group_losses, dim=1)[0]
+                    all_group_losses[:, group_idx, 0] = group_min
+                
+                if total_groups == 1:
+                    return all_group_losses[:, 0, 0]
+                else:
+                    group_losses = all_group_losses[:, :, 0]
+                    return soft_min(group_losses, alpha=self._alpha)
+        
+        # Create and compile the module
+        self._compiled_eval_loss = torch.jit.script(CompiledEvalLoss(self))
+        
     def _eval_loss(self, positions: torch.tensor) -> torch.tensor:
         """
         Evaluate the loss for a batch of atom positions.
+        This method is automatically compiled after initialization.
         
-        For each resonance group, computes the minimum loss among all resonant
-        structures, then applies soft minimum across all unique cyclization opportunities.
-
         Parameters
         ----------
         positions : torch.tensor
@@ -396,57 +468,7 @@ class ChemicalLossHandler(LossHandler):
             Tensor of shape (batch_size,) containing the combined loss values.
             Returns zeros if no valid cyclizations were found.
         """
-        if not self._resonance_groups:
-            # Handle case where no valid cyclizations were found
-            return torch.zeros(positions.shape[0], device=self.device)
-        
-        batch_size = positions.shape[0]
-        group_losses = []
-        
-        # Process each resonance group
-        for resonance_key, losses_in_group in self._resonance_groups.items():
-            # Compute losses for all instances in this resonance group
-            group_loss_values = []
-            
-            for loss in losses_in_group:
-                # Extract tetrahedral vertex positions
-                vertex_indices = [loss.atom_idxs[key] for key in loss.atom_idxs_keys]
-                
-                # Get positions for all 4 vertices: shape [batch_size, 4, 3]
-                vertex_positions = positions[:, vertex_indices, :]
-                
-                # Compute pairwise distances for tetrahedral geometry
-                # Using the same distance calculation as in ChemicalLoss._eval_loss
-                v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
-                
-                atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
-                atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
-                
-                dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
-                
-                # Evaluate KDE and convert to energy
-                logP = loss.kde_pdf.score_samples(dists)
-                energy = -KB * self.temp * logP
-                
-                # Apply weight and offset
-                scaled_energy = energy * loss.weight + loss.offset
-                group_loss_values.append(scaled_energy)
-            
-            # Take minimum across all resonant structures in this group
-            if len(group_loss_values) == 1:
-                group_min = group_loss_values[0]
-            else:
-                group_stack = torch.stack(group_loss_values, dim=1)  # [batch_size, n_resonant]
-                group_min = torch.min(group_stack, dim=1)[0]  # [batch_size]
-            
-            group_losses.append(group_min)
-        
-        # Apply soft minimum across all unique cyclization groups
-        if len(group_losses) == 1:
-            return group_losses[0]
-        else:
-            all_group_losses = torch.stack(group_losses, dim=1)  # [batch_size, n_groups]
-            return soft_min(all_group_losses, alpha=self.alpha)
+        return self._compiled_eval_loss(positions)
     
     def __call__(self, positions: torch.tensor) -> torch.tensor:
         """
@@ -854,3 +876,45 @@ class ChemicalLossHandler(LossHandler):
                 print(f"{j+1}. {loss_obj.method}: {val:.4f}")
         
         print("\nNote: Lower values indicate more favorable cyclization configurations.")
+
+    def _verify_gradients(self, positions: torch.tensor) -> bool:
+        """
+        Verify that gradients flow correctly through the loss computation.
+        
+        Parameters
+        ----------
+        positions : torch.tensor
+            Tensor of shape (batch_size, n_atoms, 3) containing atom positions.
+            
+        Returns
+        -------
+        bool
+            True if gradients flow correctly, False otherwise.
+        """
+        # Enable gradient tracking
+        positions.requires_grad_(True)
+        
+        # Compute loss
+        loss = self._eval_loss(positions)
+        
+        # Check if loss is a scalar
+        if loss.numel() != 1:
+            loss = loss.mean()
+            
+        # Compute gradients
+        loss.backward()
+        
+        # Check if gradients exist and are not None
+        has_gradients = positions.grad is not None
+        
+        # Check if gradients are finite
+        if has_gradients:
+            gradients_finite = torch.isfinite(positions.grad).all().item()
+        else:
+            gradients_finite = False
+            
+        # Reset gradient tracking
+        positions.requires_grad_(False)
+        positions.grad = None
+        
+        return has_gradients and gradients_finite
