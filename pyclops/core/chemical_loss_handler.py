@@ -389,6 +389,7 @@ class ChemicalLossHandler(LossHandler):
         """
         Compile the _eval_loss method using torch.jit.script.
         This is called after initialization when all parameters are fixed.
+        The compiled version will work on both CPU and GPU.
         """
         # Create a wrapper class to hold the compiled method
         class CompiledEvalLoss(torch.nn.Module):
@@ -399,13 +400,15 @@ class ChemicalLossHandler(LossHandler):
                 self._resonance_groups = handler._resonance_groups
                 self._temp = handler._temp
                 self._alpha = handler._alpha
-                self._device = handler._device
                 self.KB = KB  # Boltzmann constant
                 
             @torch.jit.script_method
             def forward(self, positions: torch.Tensor) -> torch.Tensor:
+                # Get device from input tensor to ensure device-agnostic behavior
+                device = positions.device
+                
                 if not self._resonance_groups:
-                    return torch.zeros(positions.shape[0], device=self._device)
+                    return torch.zeros(positions.shape[0], device=device)
                 
                 batch_size = positions.shape[0]
                 max_losses_per_group = max(len(losses) for losses in self._resonance_groups.values())
@@ -414,14 +417,14 @@ class ChemicalLossHandler(LossHandler):
                 all_group_losses = torch.full(
                     (batch_size, total_groups, max_losses_per_group),
                     float('inf'),
-                    device=self._device
+                    device=device
                 )
                 
                 for group_idx, (resonance_key, losses_in_group) in enumerate(self._resonance_groups.items()):
                     group_losses = torch.full(
                         (batch_size, len(losses_in_group)),
                         float('inf'),
-                        device=self._device
+                        device=device
                     )
                     
                     for loss_idx, loss in enumerate(losses_in_group):
@@ -449,13 +452,24 @@ class ChemicalLossHandler(LossHandler):
                     group_losses = all_group_losses[:, :, 0]
                     return soft_min(group_losses, alpha=self._alpha)
         
-        # Create and compile the module
-        self._compiled_eval_loss = torch.jit.script(CompiledEvalLoss(self))
-        
+        try:
+            # Create and compile the module
+            self._compiled_eval_loss = torch.jit.script(CompiledEvalLoss(self))
+            
+            # Verify the compilation worked by running a test forward pass
+            test_input = torch.randn(2, self._traj.n_atoms, 3, device=self._device)
+            _ = self._compiled_eval_loss(test_input)
+            
+        except Exception as e:
+            print(f"Warning: JIT compilation failed: {str(e)}")
+            print("Falling back to non-compiled version")
+            # Fall back to non-compiled version
+            self._compiled_eval_loss = None
+            
     def _eval_loss(self, positions: torch.tensor) -> torch.tensor:
         """
         Evaluate the loss for a batch of atom positions.
-        This method is automatically compiled after initialization.
+        This method is automatically compiled after initialization if possible.
         
         Parameters
         ----------
@@ -468,7 +482,54 @@ class ChemicalLossHandler(LossHandler):
             Tensor of shape (batch_size,) containing the combined loss values.
             Returns zeros if no valid cyclizations were found.
         """
-        return self._compiled_eval_loss(positions)
+        if self._compiled_eval_loss is not None:
+            return self._compiled_eval_loss(positions)
+        else:
+            # Fall back to non-compiled version
+            if not self._resonance_groups:
+                return torch.zeros(positions.shape[0], device=positions.device)
+            
+            batch_size = positions.shape[0]
+            max_losses_per_group = max(len(losses) for losses in self._resonance_groups.values())
+            total_groups = len(self._resonance_groups)
+            
+            all_group_losses = torch.full(
+                (batch_size, total_groups, max_losses_per_group),
+                float('inf'),
+                device=positions.device
+            )
+            
+            for group_idx, (resonance_key, losses_in_group) in enumerate(self._resonance_groups.items()):
+                group_losses = torch.full(
+                    (batch_size, len(losses_in_group)),
+                    float('inf'),
+                    device=positions.device
+                )
+                
+                for loss_idx, loss in enumerate(losses_in_group):
+                    vertex_indices = [loss.atom_idxs[key] for key in loss.atom_idxs_keys]
+                    vertex_positions = positions[:, vertex_indices, :]
+                    
+                    v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
+                    
+                    atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
+                    atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
+                    
+                    dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
+                    
+                    logP = loss.kde_pdf.score_samples(dists)
+                    energy = -KB * self._temp * logP
+                    scaled_energy = energy * loss.weight + loss.offset
+                    group_losses[:, loss_idx] = scaled_energy
+                
+                group_min = torch.min(group_losses, dim=1)[0]
+                all_group_losses[:, group_idx, 0] = group_min
+            
+            if total_groups == 1:
+                return all_group_losses[:, 0, 0]
+            else:
+                group_losses = all_group_losses[:, :, 0]
+                return soft_min(group_losses, alpha=self._alpha)
     
     def __call__(self, positions: torch.tensor) -> torch.tensor:
         """
