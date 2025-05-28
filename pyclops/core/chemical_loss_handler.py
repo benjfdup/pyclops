@@ -1,5 +1,4 @@
 from typing import Dict, List, Optional, Set, Type, Union, Tuple, Any
-import re
 
 import torch
 import mdtraj as md
@@ -46,6 +45,9 @@ class ChemicalLossHandler(LossHandler):
         Set of residue indices to exclude from cyclization consideration.
     device : Optional[torch.device]
         Device to use for computations. If None, uses CUDA if available, else CPU.
+    use_jit : bool, default=True
+        Whether to attempt JIT compilation of the loss evaluation. If False, uses the
+        non-compiled version which may be slower but more compatible with some KDE models.
 
     Attributes
     ----------
@@ -80,6 +82,7 @@ class ChemicalLossHandler(LossHandler):
                 alpha: float = -3.0,
                 mask: Optional[Set[int]] = None,
                 device: Optional[torch.device] = None,
+                use_jit: bool = True,
                 **kwargs) -> "ChemicalLossHandler":
         """
         Create a ChemicalLossHandler from a PDB file with simplified parameters.
@@ -105,6 +108,9 @@ class ChemicalLossHandler(LossHandler):
             Set of residue indices to exclude from cyclization consideration.
         device : Optional[torch.device]
             Device to use for computations. If None, uses CUDA if available, else CPU.
+        use_jit : bool, default=True
+            Whether to attempt JIT compilation of the loss evaluation. If False, uses the
+            non-compiled version which may be slower but more compatible with some KDE models.
         **kwargs : dict
             Additional keyword arguments passed to the constructor.
 
@@ -152,6 +158,7 @@ class ChemicalLossHandler(LossHandler):
             alpha=alpha,
             mask=mask,
             device=device,
+            use_jit=use_jit,
             **kwargs
         )
 
@@ -165,11 +172,45 @@ class ChemicalLossHandler(LossHandler):
                  alpha: float = -3.0,
                  mask: Optional[Set[int]] = None, 
                  device: Optional[torch.device] = None,
+                 use_jit: bool = True,
                  ):
         """
         Initialize a ChemicalLossHandler with detailed control over parameters.
         
         For most use cases, the `from_pdb` class method provides a simpler interface.
+
+        Parameters
+        ----------
+        pdb_path : Union[str, Path]
+            Path to the PDB file containing the peptide structure.
+        units_factor : float
+            Conversion factor to convert input coordinates to Angstroms.
+        strategies : Optional[Set[Type[ChemicalLoss]]]
+            Set of chemical loss strategies to consider. If None, uses default_strategies.
+        weights : Optional[Dict[Type[ChemicalLoss], float]]
+            Dictionary mapping loss types to their weights. If None, all weights are 1.0.
+        offsets : Optional[Dict[Type[ChemicalLoss], float]]
+            Dictionary mapping loss types to their offsets. If None, all offsets are 0.0.
+        temp : float, default=300.0
+            Temperature in Kelvin for energy calculations.
+        alpha : float, default=-3.0
+            Soft minimum parameter controlling the sharpness of the minimum.
+        mask : Optional[Set[int]]
+            Set of residue indices to exclude from cyclization consideration.
+        device : Optional[torch.device]
+            Device to use for computations. If None, uses CUDA if available, else CPU.
+        use_jit : bool, default=True
+            Whether to attempt JIT compilation of the loss evaluation. If False, uses the
+            non-compiled version which may be slower but more compatible with some KDE models.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the PDB file does not exist.
+        RuntimeError
+            If JIT compilation fails and use_jit is True.
+        ValueError
+            If temperature is not positive.
         """
         super().__init__(units_factor)
         self._pdb_path = Path(pdb_path)
@@ -186,7 +227,8 @@ class ChemicalLossHandler(LossHandler):
         self._offsets = offsets or {s: 0.0 for s in self._strategies}
         
         # Validate temperature
-        assert temp > 0, f"Temperature (temp) must be positive, but got {temp}."
+        if temp <= 0:
+            raise ValueError(f"Temperature (temp) must be positive, but got {temp}")
         self._temp = temp
         self._alpha = alpha
 
@@ -203,8 +245,28 @@ class ChemicalLossHandler(LossHandler):
         # Initialize losses and build resonance groups
         self._initialize_losses()
         
-        # Compile _eval_loss after initialization
-        self._compile_eval_loss()
+        # Initialize JIT compilation flag
+        self._use_jit = use_jit
+        
+        # Compile _eval_loss if requested
+        if self._use_jit:
+            # First validate KDE compatibility
+            if not self._validate_kde_compatibility():
+                raise RuntimeError(
+                    "One or more KDE models are not compatible with JIT compilation. "
+                    "Try initializing with use_jit=False to use the non-compiled version."
+                )
+            try:
+                self._compile_eval_loss()
+            except RuntimeError as e:
+                if "JIT compilation failed" in str(e):
+                    raise RuntimeError(
+                        "JIT compilation failed during initialization. "
+                        "Try initializing with use_jit=False to use the non-compiled version."
+                    ) from e
+                raise
+        else:
+            self._compiled_eval_loss = None
         
     @property
     def pdb_path(self) -> Path:
@@ -390,25 +452,33 @@ class ChemicalLossHandler(LossHandler):
         Compile the _eval_loss method using torch.jit.script.
         This is called after initialization when all parameters are fixed.
         The compiled version will work on both CPU and GPU.
+        
+        Raises
+        ------
+        RuntimeError
+            If JIT compilation fails due to incompatible KDE models or other issues.
         """
         # Create a wrapper class to hold the compiled method
         class CompiledEvalLoss(torch.nn.Module):
             def __init__(self, handler):
                 super().__init__()
-                self.handler = handler
                 # Store all fixed parameters
                 self._resonance_groups = handler._resonance_groups
                 self._temp = handler._temp
                 self._alpha = handler._alpha
                 self.KB = KB  # Boltzmann constant
+                self._device = handler._device  # Store device for KDE models
                 
             @torch.jit.script_method
             def forward(self, positions: torch.Tensor) -> torch.Tensor:
-                # Get device from input tensor to ensure device-agnostic behavior
-                device = positions.device
+                # Check if input is on the correct device
+                if positions.device != self._device:
+                    print(f"Warning: Input positions are on {positions.device} but KDE models are on {self._device}. "
+                          f"Transferring positions to {self._device}.")
+                    positions = positions.to(self._device)
                 
                 if not self._resonance_groups:
-                    return torch.zeros(positions.shape[0], device=device)
+                    return torch.zeros(positions.shape[0], device=self._device)
                 
                 batch_size = positions.shape[0]
                 max_losses_per_group = max(len(losses) for losses in self._resonance_groups.values())
@@ -417,14 +487,14 @@ class ChemicalLossHandler(LossHandler):
                 all_group_losses = torch.full(
                     (batch_size, total_groups, max_losses_per_group),
                     float('inf'),
-                    device=device
+                    device=self._device
                 )
                 
                 for group_idx, (resonance_key, losses_in_group) in enumerate(self._resonance_groups.items()):
                     group_losses = torch.full(
                         (batch_size, len(losses_in_group)),
                         float('inf'),
-                        device=device
+                        device=self._device
                     )
                     
                     for loss_idx, loss in enumerate(losses_in_group):
@@ -461,11 +531,58 @@ class ChemicalLossHandler(LossHandler):
             _ = self._compiled_eval_loss(test_input)
             
         except Exception as e:
-            print(f"Warning: JIT compilation failed: {str(e)}")
-            print("Falling back to non-compiled version")
-            # Fall back to non-compiled version
-            self._compiled_eval_loss = None
+            error_msg = (
+                f"JIT compilation failed: {str(e)}\n"
+                "This might be due to incompatible KDE models or other issues.\n"
+                "Try initializing with use_jit=False to use the non-compiled version."
+            )
+            raise RuntimeError(error_msg) from e
+
+    @property
+    def is_compiled(self) -> bool:
+        """Whether the loss evaluation is using JIT compilation."""
+        return self._compiled_eval_loss is not None
+
+    @property
+    def use_jit(self) -> bool:
+        """Whether JIT compilation was requested."""
+        return self._use_jit
+
+    def recompile(self) -> None:
+        """
+        Attempt to recompile the loss evaluation.
+        This can be useful if the initial compilation failed but you want to try again.
+        
+        Raises
+        ------
+        RuntimeError
+            If JIT compilation fails.
+        """
+        if not self._use_jit:
+            raise RuntimeError("Cannot recompile: JIT compilation was disabled during initialization")
+        self._compile_eval_loss()
+
+    def _validate_kde_compatibility(self) -> bool:
+        """
+        Validate that all KDE models are compatible with JIT compilation.
+        
+        Returns
+        -------
+        bool
+            True if all KDE models are compatible, False otherwise.
+        """
+        if not self._use_jit:
+            return True
             
+        try:
+            # Try to compile a simple test with each KDE model
+            for loss in self._losses:
+                test_input = torch.randn(2, 6, device=self._device)  # 6 distances for tetrahedral geometry
+                _ = torch.jit.script(loss.kde_pdf.score_samples)(test_input)
+            return True
+        except Exception:
+            return False
+
     def _eval_loss(self, positions: torch.tensor) -> torch.tensor:
         """
         Evaluate the loss for a batch of atom positions.
@@ -482,30 +599,40 @@ class ChemicalLossHandler(LossHandler):
             Tensor of shape (batch_size,) containing the combined loss values.
             Returns zeros if no valid cyclizations were found.
         """
+        # Check if input is on the correct device
+        if positions.device != self._device:
+            print(f"Warning: Input positions are on {positions.device} but KDE models are on {self._device}. "
+                  f"Transferring positions to {self._device}.")
+            positions = positions.to(self._device)
+
         if self._compiled_eval_loss is not None:
             return self._compiled_eval_loss(positions)
         else:
-            # Fall back to non-compiled version
+            # Fall back to non-compiled version (using optimized pre-allocation)
             if not self._resonance_groups:
-                return torch.zeros(positions.shape[0], device=positions.device)
+                return torch.zeros(positions.shape[0], device=self._device)
             
             batch_size = positions.shape[0]
             max_losses_per_group = max(len(losses) for losses in self._resonance_groups.values())
             total_groups = len(self._resonance_groups)
             
+            # Pre-allocate tensors for all groups and losses
             all_group_losses = torch.full(
                 (batch_size, total_groups, max_losses_per_group),
                 float('inf'),
-                device=positions.device
+                device=self._device
             )
             
+            # Process all groups in parallel
             for group_idx, (resonance_key, losses_in_group) in enumerate(self._resonance_groups.items()):
+                # Pre-allocate tensor for this group's losses
                 group_losses = torch.full(
                     (batch_size, len(losses_in_group)),
                     float('inf'),
-                    device=positions.device
+                    device=self._device
                 )
                 
+                # Process all losses in this group in parallel
                 for loss_idx, loss in enumerate(losses_in_group):
                     vertex_indices = [loss.atom_idxs[key] for key in loss.atom_idxs_keys]
                     vertex_positions = positions[:, vertex_indices, :]
@@ -518,18 +645,20 @@ class ChemicalLossHandler(LossHandler):
                     dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
                     
                     logP = loss.kde_pdf.score_samples(dists)
-                    energy = -KB * self._temp * logP
+                    energy = -KB * self.temp * logP
                     scaled_energy = energy * loss.weight + loss.offset
                     group_losses[:, loss_idx] = scaled_energy
                 
+                # Take minimum across all resonant structures in this group
                 group_min = torch.min(group_losses, dim=1)[0]
                 all_group_losses[:, group_idx, 0] = group_min
             
+            # Apply soft minimum across all unique cyclization groups
             if total_groups == 1:
                 return all_group_losses[:, 0, 0]
             else:
                 group_losses = all_group_losses[:, :, 0]
-                return soft_min(group_losses, alpha=self._alpha)
+                return soft_min(group_losses, alpha=self.alpha)
     
     def __call__(self, positions: torch.tensor) -> torch.tensor:
         """
@@ -664,6 +793,7 @@ class ChemicalLossHandler(LossHandler):
         - Strategy configuration details
         - Detailed analysis of each cyclization group
         - Statistics about resonant vs non-resonant groups
+        - JIT compilation status and device information
 
         Returns
         -------
@@ -690,6 +820,9 @@ class ChemicalLossHandler(LossHandler):
             kde_info[kde_file]['strategies'].add(type(loss).__name__)
             kde_info[kde_file]['losses'].append(loss)
         
+        # Check JIT compilation status
+        jit_status = "Enabled" if self._compiled_eval_loss is not None else "Disabled (fallback to non-compiled version)"
+        
         summary = [
             f"ChemicalLossHandler Summary",
             f"=" * 50,
@@ -697,6 +830,7 @@ class ChemicalLossHandler(LossHandler):
             f"Temperature: {self.temp}K",
             f"Soft minimum alpha: {self.alpha}",
             f"Device: {self.device}",
+            f"JIT Compilation: {jit_status}",
             f"",
             f"Overview:",
             f"  Total cyclization options: {total_losses}",
