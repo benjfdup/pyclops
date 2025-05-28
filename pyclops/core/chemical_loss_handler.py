@@ -6,6 +6,7 @@ import mdtraj as md
 from pathlib import Path
 from ..core.chemical_loss import ChemicalLoss
 from ..core.loss_handler import LossHandler
+from .compiled_eval_loss import CompiledEvalLoss
 from ..utils.constants import KB, UNITS_FACTORS_DICT
 from ..utils.default_strategies import DEFAULT_STRATEGIES
 from ..utils.utils import soft_min
@@ -458,73 +459,14 @@ class ChemicalLossHandler(LossHandler):
         RuntimeError
             If JIT compilation fails due to incompatible KDE models or other issues.
         """
-        # Create a wrapper class to hold the compiled method
-        class CompiledEvalLoss(torch.nn.Module):
-            def __init__(self, handler):
-                super().__init__()
-                # Store all fixed parameters
-                self._resonance_groups = handler._resonance_groups
-                self._temp = handler._temp
-                self._alpha = handler._alpha
-                self.KB = KB  # Boltzmann constant
-                self._device = handler._device  # Store device for KDE models
-                
-            @torch.jit.script_method
-            def forward(self, positions: torch.Tensor) -> torch.Tensor:
-                # Check if input is on the correct device
-                if positions.device != self._device:
-                    print(f"Warning: Input positions are on {positions.device} but KDE models are on {self._device}. "
-                          f"Transferring positions to {self._device}.")
-                    positions = positions.to(self._device)
-                
-                if not self._resonance_groups:
-                    return torch.zeros(positions.shape[0], device=self._device)
-                
-                batch_size = positions.shape[0]
-                max_losses_per_group = max(len(losses) for losses in self._resonance_groups.values())
-                total_groups = len(self._resonance_groups)
-                
-                all_group_losses = torch.full(
-                    (batch_size, total_groups, max_losses_per_group),
-                    float('inf'),
-                    device=self._device
-                )
-                
-                for group_idx, (resonance_key, losses_in_group) in enumerate(self._resonance_groups.items()):
-                    group_losses = torch.full(
-                        (batch_size, len(losses_in_group)),
-                        float('inf'),
-                        device=self._device
-                    )
-                    
-                    for loss_idx, loss in enumerate(losses_in_group):
-                        vertex_indices = [loss.atom_idxs[key] for key in loss.atom_idxs_keys]
-                        vertex_positions = positions[:, vertex_indices, :]
-                        
-                        v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
-                        
-                        atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
-                        atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
-                        
-                        dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
-                        
-                        logP = loss.kde_pdf.score_samples(dists)
-                        energy = -self.KB * self._temp * logP
-                        scaled_energy = energy * loss.weight + loss.offset
-                        group_losses[:, loss_idx] = scaled_energy
-                    
-                    group_min = torch.min(group_losses, dim=1)[0]
-                    all_group_losses[:, group_idx, 0] = group_min
-                
-                if total_groups == 1:
-                    return all_group_losses[:, 0, 0]
-                else:
-                    group_losses = all_group_losses[:, :, 0]
-                    return soft_min(group_losses, alpha=self._alpha)
-        
         try:
             # Create and compile the module
-            self._compiled_eval_loss = torch.jit.script(CompiledEvalLoss(self))
+            self._compiled_eval_loss = torch.jit.script(CompiledEvalLoss(
+                resonance_groups=self._resonance_groups,
+                temp=self._temp,
+                alpha=self._alpha,
+                device=self._device
+            ))
             
             # Verify the compilation worked by running a test forward pass
             test_input = torch.randn(2, self._traj.n_atoms, 3, device=self._device)
@@ -605,13 +547,14 @@ class ChemicalLossHandler(LossHandler):
                   f"Transferring positions to {self._device}.")
             positions = positions.to(self._device)
 
+        # Early return if no resonance groups
+        if not self._resonance_groups:
+            return torch.zeros(positions.shape[0], device=self._device)
+
         if self._compiled_eval_loss is not None:
             return self._compiled_eval_loss(positions)
         else:
             # Fall back to non-compiled version (using optimized pre-allocation)
-            if not self._resonance_groups:
-                return torch.zeros(positions.shape[0], device=self._device)
-            
             batch_size = positions.shape[0]
             max_losses_per_group = max(len(losses) for losses in self._resonance_groups.values())
             total_groups = len(self._resonance_groups)
