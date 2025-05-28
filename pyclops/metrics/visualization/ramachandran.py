@@ -62,6 +62,13 @@ def ramachandran_plot(
     # Select protein atoms
     protein = u.select_atoms("protein")
     
+    # Verify coordinate dimensions match
+    if coordinates.shape[1] != len(protein.atoms):
+        raise ValueError(
+            f"Number of atoms in coordinates ({coordinates.shape[1]}) does not match "
+            f"number of atoms in PDB ({len(protein.atoms)})"
+        )
+    
     # Get the frame coordinates
     frame_coords = coordinates[frame_idx]
     
@@ -72,6 +79,11 @@ def ramachandran_plot(
     protein_angles = protein.angles
     phi_angles = protein_angles.phi_angles()
     psi_angles = protein_angles.psi_angles()
+    
+    # Remove any NaN values
+    mask = ~(np.isnan(phi_angles) | np.isnan(psi_angles))
+    phi_angles = phi_angles[mask]
+    psi_angles = psi_angles[mask]
     
     # Create the plot
     fig, ax = plt.subplots(figsize=figsize)
@@ -89,7 +101,18 @@ def ramachandran_plot(
         origin='lower',
         extent=[-180, 180, -180, 180],
         aspect='auto',
-        cmap=cmap
+        cmap=cmap,
+        alpha=alpha
+    )
+    
+    # Add scatter plot of individual points
+    ax.scatter(
+        phi_angles,
+        psi_angles,
+        c='black',
+        s=10,
+        alpha=alpha/2,
+        marker='.'
     )
     
     # Add colorbar
