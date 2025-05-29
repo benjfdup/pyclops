@@ -37,8 +37,8 @@ class ChemicalLossHandler(LossHandler):
         Dictionary mapping loss types to their weights. If None, all weights are 1.0.
     offsets : Optional[Dict[Type[ChemicalLoss], float]]
         Dictionary mapping loss types to their offsets. If None, all offsets are 0.0.
-    temp : float, default=300.0
-        Temperature in Kelvin for energy calculations.
+    temp : float, default=1.0
+        Virtual temperature for energy calculations.
     alpha : float, default=-3.0
         Soft minimum parameter controlling the sharpness of the minimum.
     mask : Optional[Set[int]]
@@ -75,7 +75,7 @@ class ChemicalLossHandler(LossHandler):
                 pdb_path: Union[str, Path],
                 units: Optional[str] = None,
                 units_factor: Optional[float] = None, 
-                temp: float = 300.0,
+                temp: float = 1.0,
                 alpha: float = -3.0,
                 mask: Optional[Set[int]] = None,
                 device: Optional[torch.device] = None,
@@ -96,7 +96,7 @@ class ChemicalLossHandler(LossHandler):
         units_factor : Optional[float]
             Direct conversion factor to convert input coordinates to Angstroms.
             Either units or units_factor must be provided, but not both.
-        temp : float, default=300.0
+        temp : float, default=1.0
             Temperature in Kelvin for energy calculations.
         alpha : float, default=-3.0
             Soft minimum parameter controlling the sharpness of the minimum.
@@ -160,7 +160,7 @@ class ChemicalLossHandler(LossHandler):
                  strategies: Optional[Set[Type[ChemicalLoss]]] = None,
                  weights: Optional[Dict[Type[ChemicalLoss], float]] = None,
                  offsets: Optional[Dict[Type[ChemicalLoss], float]] = None,
-                 temp: float = 300.0,
+                 temp: float = 1.0,
                  alpha: float = -3.0,
                  mask: Optional[Set[int]] = None, 
                  # can mask certain residues from consideration when initializing losses.
@@ -396,7 +396,6 @@ class ChemicalLossHandler(LossHandler):
             Returns zeros if no valid cyclizations were found.
         """
         if not self._resonance_groups:
-            # Handle case where no valid cyclizations were found
             return torch.zeros(positions.shape[0], device=self.device)
         
         batch_size = positions.shape[0]
@@ -415,7 +414,6 @@ class ChemicalLossHandler(LossHandler):
                 vertex_positions = positions[:, vertex_indices, :]
                 
                 # Compute pairwise distances for tetrahedral geometry
-                # Using the same distance calculation as in ChemicalLoss._eval_loss
                 v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
                 
                 atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
@@ -442,10 +440,12 @@ class ChemicalLossHandler(LossHandler):
         
         # Apply soft minimum across all unique cyclization groups
         if len(group_losses) == 1:
-            return group_losses[0]
+            final_loss = group_losses[0]
         else:
             all_group_losses = torch.stack(group_losses, dim=1)  # [batch_size, n_groups]
-            return soft_min(all_group_losses, alpha=self.alpha)
+            final_loss = soft_min(all_group_losses, alpha=self.alpha)
+        
+        return final_loss
     
     def __call__(self, positions: torch.tensor) -> torch.tensor:
         """

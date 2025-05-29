@@ -91,7 +91,7 @@ class ChemicalLoss(ABC):
         self,
         method: str, 
         atom_idxs: Dict[str, int],
-        temp: float = 300.0,
+        temp: float = 1.0,
         weight: float = 1.0,
         offset: float = 0.0,
         resonance_key: Optional[Tuple[str, frozenset]] = None,

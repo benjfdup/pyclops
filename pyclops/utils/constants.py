@@ -1,7 +1,8 @@
 from typing import Set, Dict
 
+# Boltzmann constant in kcal/mol/K - more appropriate for molecular energy calculations
+KB: float = 1.0  # kcal/mol/K
 
-KB: float = 1.380649 * 10**-23
 AMBER_CAPS: Set[str] = {"ACE", "NME", "NHE"} # cap amino acids used in amber md simulations
 UNITS_FACTORS_DICT: Dict[str, float] = {
     "angstrom": 1.0,
