@@ -163,17 +163,6 @@ class ChemicalLossHandler(LossHandler):
             group_loss_values = []
             
             for loss_idx in range(group_indices.shape[0]):
-                # Extract vertex positions using pre-computed indices
-                vertex_indices = group_indices[loss_idx]
-                vertex_positions = positions[:, vertex_indices, :]
-                
-                # Stack atom positions for vectorized distance calculation
-                v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
-                
-                atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
-                atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
-                
-                dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
                 
                 # Use pre-computed log probabilities
                 logP = log_probs[group_idx, loss_idx]

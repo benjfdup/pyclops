@@ -1,10 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import final, Dict, List, Optional, Set, Type, Union, Tuple
 import torch
-import mdtraj as md
-from pathlib import Path
-
-from ..utils.constants import UNITS_FACTORS_DICT
 
 class LossHandler(ABC):
     """
@@ -26,7 +21,7 @@ class LossHandler(ABC):
         positions_ang = positions * self._units_factor
         
         # Call the scripted method through the class instance
-        return self._eval_loss(positions_ang)
+        return self._eval_loss(positions_ang) # shape: [n_batch, ]
     
     @abstractmethod
     def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:

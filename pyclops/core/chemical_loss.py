@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, ClassVar, Union, final
+from typing import Dict, List, Optional, Tuple, ClassVar, Union
 import torch
 import mdtraj as md
 import warnings
