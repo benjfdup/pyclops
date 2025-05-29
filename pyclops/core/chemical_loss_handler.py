@@ -339,3 +339,68 @@ class ChemicalLossHandler(LossHandler):
     @property
     def topology(self) -> md.Topology:
         return self._topology 
+    
+    @property
+    def summary(self) -> str:
+        """
+        Generate a concise but comprehensive summary of the ChemicalLossHandler state.
+        Optimized for debugging while maintaining all critical information.
+        """
+        if not self._resonance_groups:
+            return "No valid cyclization sites found."
+        
+        # Core configuration
+        config = [
+            f"CONFIG: pdb={self.pdb_path.name} | temp={self.temp}K | alpha={self.alpha} | device={self.device}",
+            f"UNITS: factor={self.units_factor}",
+            f"STATS: total_losses={len(self._losses)} | groups={len(self._resonance_groups)} | strategies={len(self.strategies)}"
+        ]
+        
+        # Strategy weights and offsets
+        strategy_info = ["STRATEGIES:"]
+        for strategy in sorted(self.strategies, key=lambda x: x.__name__):
+            weight = self.weights.get(strategy, 1.0)
+            offset = self.offsets.get(strategy, 0.0)
+            count = sum(1 for loss in self._losses if isinstance(loss, strategy))
+            strategy_info.append(f"  {strategy.__name__}: w={weight} o={offset} n={count}")
+        
+        # KDE models used
+        kde_info = {}
+        for loss in self._losses:
+            kde_file = loss.kde_file
+            if kde_file not in kde_info:
+                kde_info[kde_file] = {'count': 0, 'strategies': set()}
+            kde_info[kde_file]['count'] += 1
+            kde_info[kde_file]['strategies'].add(type(loss).__name__)
+        
+        kde_summary = ["KDE MODELS:"]
+        for kde_file, info in kde_info.items():
+            kde_path = Path(kde_file)
+            kde_summary.append(f"  {kde_path.name}: n={info['count']} | strategies={','.join(sorted(info['strategies']))}")
+        
+        # Resonance groups
+        groups_info = ["RESONANCE GROUPS:"]
+        for (method_base, residue_pair), losses_in_group in self._resonance_groups.items():
+            is_resonant = len(losses_in_group) > 1
+            group_type = "RESONANT" if is_resonant else "SINGLE"
+            groups_info.append(f"  {group_type} | {method_base}")
+            groups_info.append(f"    residues={sorted(residue_pair)} | variants={len(losses_in_group)}")
+            
+            # Add first variant details as reference
+            first_loss = losses_in_group[0]
+            atom_info = [f"{k}:{v}" for k, v in first_loss.atom_idxs.items()]
+            groups_info.append(f"    atoms={','.join(atom_info)} | kde={Path(first_loss.kde_file).name}")
+            if is_resonant:
+                groups_info.append(f"    additional_variants={len(losses_in_group)-1}")
+            groups_info.append("")
+        
+        # Combine all sections
+        return "\n".join([
+            *config,
+            "",
+            *strategy_info,
+            "",
+            *kde_summary,
+            "",
+            *groups_info
+        ])
