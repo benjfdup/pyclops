@@ -95,26 +95,15 @@ def motif_loss(pos: torch.tensor,
 
     return loss
 
-def soft_min(inputs: torch.tensor, alpha: float = -3.0) -> torch.tensor:
+@torch.jit.script
+def soft_min(inputs: torch.Tensor, alpha: float = -3.0) -> torch.Tensor:
     """
     Numerically stable soft minimum across batches.
-    As alpha → -∞, returns hard min. 
-    As alpha → 0, returns average.
-    As alpha → ∞, returns hard max.
-
-    Parameters
-    ----------
-    inputs : torch.tensor
-        Tensor of shape (batch_size, n_losses)
-
-    alpha : float
-        Smoothness parameter
-
-    Returns
-    -------
-    torch.tensor
-        Soft minimum across each batch (shape: batch_size,)
     """
+    return -torch.logsumexp(-alpha * inputs, dim=1) / alpha
+
+'''
+def soft_min(inputs: torch.tensor, alpha: float = -3.0) -> torch.tensor:
     # Subtract max per row for numerical stability
     max_vals = torch.max(inputs, dim=-1, keepdim=True).values
     shifted_inputs = inputs - max_vals
@@ -124,6 +113,7 @@ def soft_min(inputs: torch.tensor, alpha: float = -3.0) -> torch.tensor:
     result = torch.sum(inputs * weights, dim=-1)
 
     return result
+'''
 
 def soft_max(inputs: torch.tensor, alpha: float = 3.0) -> torch.tensor:
     return soft_min(inputs, alpha = alpha)
