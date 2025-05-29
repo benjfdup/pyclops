@@ -8,6 +8,7 @@ from ..utils.constants import KB, UNITS_FACTORS_DICT
 from ..utils.default_strategies import DEFAULT_STRATEGIES
 from ..utils.utils import soft_min
 from .chemical_loss import ChemicalLoss
+from ..torchkde.modules import KernelDensity
 
 class ChemicalLossHandler(LossHandler):
     """
@@ -141,7 +142,8 @@ class ChemicalLossHandler(LossHandler):
         temp: float,
         alpha: float,
         device: torch.device,
-        kb: float
+        kb: float,
+        log_probs: torch.Tensor  # Pre-computed log probabilities
     ) -> torch.Tensor:
         """
         Implementation of loss evaluation that will be compiled.
@@ -173,8 +175,8 @@ class ChemicalLossHandler(LossHandler):
                 
                 dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
                 
-                # Evaluate KDE and convert to energy
-                logP = torch.zeros(dists.shape[0], device=device)  # Placeholder for KDE evaluation
+                # Use pre-computed log probabilities
+                logP = log_probs[group_idx, loss_idx]
                 energy = -kb * temp * logP
                 
                 # Apply weight and offset (hardcoded for now)
@@ -200,17 +202,37 @@ class ChemicalLossHandler(LossHandler):
         return final_loss
     
     def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
-        """
-        Evaluate the loss for a batch of atom positions.
-        This method delegates to the compiled implementation.
-        """
+        """Evaluate the loss for a batch of atom positions."""
+        # Pre-compute log probabilities for all resonance groups
+        log_probs = []
+        for group in self._resonance_groups.values():
+            group_log_probs = []
+            for loss in group:
+                # Extract vertex positions
+                vertex_positions = positions[:, loss._vertex_indices, :]
+                v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
+                
+                # Calculate distances
+                atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
+                atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
+                dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
+                
+                # Evaluate KDE
+                logP = loss.kde_pdf.score_samples(dists)
+                group_log_probs.append(logP)
+            log_probs.append(torch.stack(group_log_probs))
+        
+        # Stack all log probabilities
+        log_probs = torch.stack(log_probs)
+        
         return self._compiled_eval_loss(
             positions,
             self._resonance_groups_indices,
             self._temp,
             self._alpha,
             self._device,
-            KB
+            KB,
+            log_probs
         )
     
     def _validate_mask(self) -> None:
