@@ -1,18 +1,18 @@
 """
 Ramachandran plot visualization functionality for protein structures.
 """
-
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import MDAnalysis as mda
+from MDAnalysis.coordinates.memory import MemoryReader
 from typing import Union, Tuple, Optional
 from pathlib import Path
 
 def ramachandran_plot(
     coordinates: Union[torch.Tensor, np.ndarray],
     pdb_file: Union[str, Path],
-    frame_idx: int = 0,
+    frame_idx: Optional[int] = None,
     title: str = "Ramachandran Plot",
     save_path: Optional[Union[str, Path]] = None,
     dpi: int = 300,
@@ -22,131 +22,99 @@ def ramachandran_plot(
     show: bool = True
 ) -> Tuple[plt.Figure, plt.Axes]:
     """
-    Generate a Ramachandran plot from protein coordinates.
-
-    Parameters
-    ----------
-    coordinates : Union[torch.Tensor, np.ndarray]
-        Protein coordinates of shape [n_frames, n_atoms, 3]
-    pdb_file : Union[str, Path]
-        Path to the PDB file containing the protein topology
-    frame_idx : int, optional
-        Index of the frame to plot, by default 0
-    title : str, optional
-        Title for the plot, by default "Ramachandran Plot"
-    save_path : Optional[Union[str, Path]], optional
-        Path to save the plot, by default None
-    dpi : int, optional
-        DPI for the saved figure, by default 300
-    figsize : Tuple[int, int], optional
-        Figure size in inches, by default (10, 10)
-    cmap : str, optional
-        Colormap for the density plot, by default "viridis"
-    alpha : float, optional
-        Transparency of the scatter points, by default 0.6
-    show : bool, optional
-        Whether to display the plot, by default True
-
-    Returns
-    -------
-    Tuple[plt.Figure, plt.Axes]
-        The figure and axes objects of the plot
+    Generate a Ramachandran plot using MDAnalysis built-in Ramachandran analysis.
+    Plots histogram of phi/psi angles averaged over residues for each frame.
     """
-    # Convert torch tensor to numpy if necessary
+    try:
+        from MDAnalysis.analysis.dihedrals import Ramachandran
+    except ImportError:
+        print("MDAnalysis Ramachandran analysis not available, using custom implementation")
+        return ramachandran_plot(coordinates, pdb_file, frame_idx, title, save_path, 
+                               dpi, figsize, cmap, alpha, show)
+    
+    # Convert torch tensor to numpy if needed
     if isinstance(coordinates, torch.Tensor):
-        coordinates = coordinates.detach().cpu().numpy()
+        coordinates = coordinates.cpu().numpy()
     
-    # Load the protein structure
-    u = mda.Universe(pdb_file)
+    # Load universe
+    u = mda.Universe(str(pdb_file))
     
-    # Select protein atoms
-    protein = u.select_atoms("protein")
+    # Add coordinates as in-memory trajectory
+    coords_A = coordinates.copy()
+    # If coordinates are in nm, convert to Angstrom (uncomment if needed)
+    # coords_A *= 10.0
     
-    # Verify coordinate dimensions match
-    if coordinates.shape[1] != len(protein.atoms):
-        raise ValueError(
-            f"Number of atoms in coordinates ({coordinates.shape[1]}) does not match "
-            f"number of atoms in PDB ({len(protein.atoms)})"
-        )
+    u.load_new(coords_A, format=MemoryReader)
     
-    # Get the frame coordinates
-    frame_coords = coordinates[frame_idx]
+    # Run Ramachandran analysis
+    rama = Ramachandran(u.select_atoms("protein")).run()
     
-    # Update coordinates in the universe
-    protein.positions = frame_coords
+    # Get angles - shape: [n_frames, n_residues, 2] where 2 = [phi, psi]
+    angles = rama.results.angles
+    print(f"Original angles shape: {angles.shape}")
     
-    # Calculate phi and psi angles
-    protein_angles = protein.angles
-    phi_angles = protein_angles.phi_angles()
-    psi_angles = protein_angles.psi_angles()
+    # Average over the residues dimension (axis=1) to get [n_frames, 2]
+    # Handle NaN values by using nanmean
+    phi_per_frame = np.nanmean(angles[:, :, 0], axis=1)  # Shape: [n_frames]
+    psi_per_frame = np.nanmean(angles[:, :, 1], axis=1)  # Shape: [n_frames]
     
-    # Remove any NaN values
-    mask = ~(np.isnan(phi_angles) | np.isnan(psi_angles))
-    phi_angles = phi_angles[mask]
-    psi_angles = psi_angles[mask]
+    print(f"Phi per frame shape: {phi_per_frame.shape}")
+    print(f"Psi per frame shape: {psi_per_frame.shape}")
     
-    # Create the plot
-    fig, ax = plt.subplots(figsize=figsize)
+    # Remove frames where average is NaN
+    valid_mask = ~(np.isnan(phi_per_frame) | np.isnan(psi_per_frame))
+    phi_clean = phi_per_frame[valid_mask]
+    psi_clean = psi_per_frame[valid_mask]
     
-    # Create 2D histogram
-    h, xedges, yedges = np.histogram2d(
-        phi_angles, psi_angles,
-        bins=50,
-        range=[[-180, 180], [-180, 180]]
-    )
+    if len(phi_clean) == 0:
+        raise ValueError("No valid phi/psi angles found after averaging.")
     
-    # Plot the density
-    im = ax.imshow(
-        h.T,
-        origin='lower',
-        extent=[-180, 180, -180, 180],
-        aspect='auto',
-        cmap=cmap,
-        alpha=alpha
-    )
+    print(f"Valid frames after NaN removal: {len(phi_clean)}")
     
-    # Add scatter plot of individual points
-    ax.scatter(
-        phi_angles,
-        psi_angles,
-        c='black',
-        s=10,
-        alpha=alpha/2,
-        marker='.'
-    )
+    # Create plot
+    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
     
-    # Add colorbar
-    plt.colorbar(im, ax=ax, label='Density')
+    # Create 2D histogram with more bins since we have many more points
+    hist, xedges, yedges = np.histogram2d(phi_clean, psi_clean, 
+                                         bins=100, range=[[-180, 180], [-180, 180]])
     
-    # Set labels and title
-    ax.set_xlabel('Phi (degrees)')
-    ax.set_ylabel('Psi (degrees)')
-    ax.set_title(title)
+    if np.max(hist) > 0:
+        # Plot histogram as heatmap with viridis colormap
+        # Make zero-count bins transparent by masking them
+        hist_masked = np.ma.masked_where(hist == 0, hist)
+        im = ax.imshow(hist_masked.T, origin='lower', extent=[-180, 180, -180, 180], 
+                       cmap='viridis', aspect='equal')
+        # Make colorbar same height as plot area
+        cbar = plt.colorbar(im, ax=ax, shrink=0.8, aspect=20)
+        cbar.set_label('Frequency', fontsize=10)
     
-    # Set axis limits
+    # Remove scatter plot overlay to show only the histogram
+    
+    # Styling
+    ax.set_xlabel('Phi (degrees)', fontsize=10)
+    ax.set_ylabel('Psi (degrees)', fontsize=10)
+    ax.set_title(f"{title} (Averaged over residues, {len(phi_clean)} frames)", 
+                fontsize=12)
     ax.set_xlim(-180, 180)
     ax.set_ylim(-180, 180)
+    ax.grid(True, alpha=0.3)
     
-    # Add grid
-    ax.grid(True, linestyle='--', alpha=0.3)
+    # No reference regions plotted
+    ax.set_xticks(np.arange(-180, 181, 60))
+    ax.set_yticks(np.arange(-180, 181, 60))
     
-    # Add common secondary structure regions
-    regions = {
-        'α-helix': (-60, -45),
-        'β-sheet': (-120, 120),
-        'Left-handed α-helix': (45, 60)
-    }
+    # Statistics with compact box
+    ax.text(0.02, 0.98, f'N frames: {len(phi_clean)}', 
+            transform=ax.transAxes, verticalalignment='top', fontsize=9,
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.9))
     
-    for name, (phi, psi) in regions.items():
-        ax.axvline(x=phi, color='red', linestyle='--', alpha=0.3)
-        ax.axhline(y=psi, color='red', linestyle='--', alpha=0.3)
+    plt.tight_layout()
     
-    # Save the plot if requested
-    if save_path is not None:
-        plt.savefig(save_path, dpi=dpi, bbox_inches='tight')
+    if save_path:
+        fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
+        print(f"Plot saved to {save_path}")
     
-    # Show the plot if requested
     if show:
         plt.show()
     
-    return fig, ax 
+    return fig, ax
