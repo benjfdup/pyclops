@@ -6,7 +6,6 @@ import mdtraj as md
 from pathlib import Path
 from ..core.chemical_loss import ChemicalLoss
 from ..core.loss_handler import LossHandler
-from .compiled_eval_loss import CompiledEvalLoss
 from ..utils.constants import KB, UNITS_FACTORS_DICT
 from ..utils.default_strategies import DEFAULT_STRATEGIES
 from ..utils.utils import soft_min
@@ -46,9 +45,6 @@ class ChemicalLossHandler(LossHandler):
         Set of residue indices to exclude from cyclization consideration.
     device : Optional[torch.device]
         Device to use for computations. If None, uses CUDA if available, else CPU.
-    use_jit : bool, default=True
-        Whether to attempt JIT compilation of the loss evaluation. If False, uses the
-        non-compiled version which may be slower but more compatible with some KDE models.
 
     Attributes
     ----------
@@ -83,7 +79,6 @@ class ChemicalLossHandler(LossHandler):
                 alpha: float = -3.0,
                 mask: Optional[Set[int]] = None,
                 device: Optional[torch.device] = None,
-                use_jit: bool = True,
                 **kwargs) -> "ChemicalLossHandler":
         """
         Create a ChemicalLossHandler from a PDB file with simplified parameters.
@@ -109,9 +104,6 @@ class ChemicalLossHandler(LossHandler):
             Set of residue indices to exclude from cyclization consideration.
         device : Optional[torch.device]
             Device to use for computations. If None, uses CUDA if available, else CPU.
-        use_jit : bool, default=True
-            Whether to attempt JIT compilation of the loss evaluation. If False, uses the
-            non-compiled version which may be slower but more compatible with some KDE models.
         **kwargs : dict
             Additional keyword arguments passed to the constructor.
 
@@ -159,7 +151,6 @@ class ChemicalLossHandler(LossHandler):
             alpha=alpha,
             mask=mask,
             device=device,
-            use_jit=use_jit,
             **kwargs
         )
 
@@ -172,46 +163,13 @@ class ChemicalLossHandler(LossHandler):
                  temp: float = 300.0,
                  alpha: float = -3.0,
                  mask: Optional[Set[int]] = None, 
+                 # can mask certain residues from consideration when initializing losses.
                  device: Optional[torch.device] = None,
-                 use_jit: bool = True,
                  ):
         """
         Initialize a ChemicalLossHandler with detailed control over parameters.
         
         For most use cases, the `from_pdb` class method provides a simpler interface.
-
-        Parameters
-        ----------
-        pdb_path : Union[str, Path]
-            Path to the PDB file containing the peptide structure.
-        units_factor : float
-            Conversion factor to convert input coordinates to Angstroms.
-        strategies : Optional[Set[Type[ChemicalLoss]]]
-            Set of chemical loss strategies to consider. If None, uses default_strategies.
-        weights : Optional[Dict[Type[ChemicalLoss], float]]
-            Dictionary mapping loss types to their weights. If None, all weights are 1.0.
-        offsets : Optional[Dict[Type[ChemicalLoss], float]]
-            Dictionary mapping loss types to their offsets. If None, all offsets are 0.0.
-        temp : float, default=300.0
-            Temperature in Kelvin for energy calculations.
-        alpha : float, default=-3.0
-            Soft minimum parameter controlling the sharpness of the minimum.
-        mask : Optional[Set[int]]
-            Set of residue indices to exclude from cyclization consideration.
-        device : Optional[torch.device]
-            Device to use for computations. If None, uses CUDA if available, else CPU.
-        use_jit : bool, default=True
-            Whether to attempt JIT compilation of the loss evaluation. If False, uses the
-            non-compiled version which may be slower but more compatible with some KDE models.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the PDB file does not exist.
-        RuntimeError
-            If JIT compilation fails and use_jit is True.
-        ValueError
-            If temperature is not positive.
         """
         super().__init__(units_factor)
         self._pdb_path = Path(pdb_path)
@@ -228,8 +186,7 @@ class ChemicalLossHandler(LossHandler):
         self._offsets = offsets or {s: 0.0 for s in self._strategies}
         
         # Validate temperature
-        if temp <= 0:
-            raise ValueError(f"Temperature (temp) must be positive, but got {temp}")
+        assert temp > 0, f"Temperature (temp) must be positive, but got {temp}."
         self._temp = temp
         self._alpha = alpha
 
@@ -245,29 +202,6 @@ class ChemicalLossHandler(LossHandler):
 
         # Initialize losses and build resonance groups
         self._initialize_losses()
-        
-        # Initialize JIT compilation flag
-        self._use_jit = use_jit
-        
-        # Compile _eval_loss if requested
-        if self._use_jit:
-            # First validate KDE compatibility
-            if not self._validate_kde_compatibility():
-                raise RuntimeError(
-                    "One or more KDE models are not compatible with JIT compilation. "
-                    "Try initializing with use_jit=False to use the non-compiled version."
-                )
-            try:
-                self._compile_eval_loss()
-            except RuntimeError as e:
-                if "JIT compilation failed" in str(e):
-                    raise RuntimeError(
-                        "JIT compilation failed during initialization. "
-                        "Try initializing with use_jit=False to use the non-compiled version."
-                    ) from e
-                raise
-        else:
-            self._compiled_eval_loss = None
         
     @property
     def pdb_path(self) -> Path:
@@ -323,11 +257,6 @@ class ChemicalLossHandler(LossHandler):
     def topology(self) -> md.Topology:
         """MDTraj topology object."""
         return self._topology
-    
-    @property
-    def mask(self) -> Set[int]:
-        """Set of residue indices to exclude from cyclization consideration."""
-        return self._mask
     
     @staticmethod
     def precompute_atom_indices(residues, atom_names) -> Dict[Tuple[int, str], int]:
@@ -448,88 +377,13 @@ class ChemicalLossHandler(LossHandler):
         for group in resonance_groups.values():
             self._losses.extend(group)
     
-    def _compile_eval_loss(self) -> None:
-        """
-        Compile the _eval_loss method using torch.jit.script.
-        This is called after initialization when all parameters are fixed.
-        The compiled version will work on both CPU and GPU.
-        
-        Raises
-        ------
-        RuntimeError
-            If JIT compilation fails due to incompatible KDE models or other issues.
-        """
-        try:
-            # Create and compile the module
-            self._compiled_eval_loss = torch.jit.script(CompiledEvalLoss(
-                resonance_groups=self._resonance_groups,
-                temp=self._temp,
-                alpha=self._alpha,
-                device=self._device
-            ))
-            
-            # Verify the compilation worked by running a test forward pass
-            test_input = torch.randn(2, self._traj.n_atoms, 3, device=self._device)
-            _ = self._compiled_eval_loss(test_input)
-            
-        except Exception as e:
-            error_msg = (
-                f"JIT compilation failed: {str(e)}\n"
-                "This might be due to incompatible KDE models or other issues.\n"
-                "Try initializing with use_jit=False to use the non-compiled version."
-            )
-            raise RuntimeError(error_msg) from e
-
-    @property
-    def is_compiled(self) -> bool:
-        """Whether the loss evaluation is using JIT compilation."""
-        return self._compiled_eval_loss is not None
-
-    @property
-    def use_jit(self) -> bool:
-        """Whether JIT compilation was requested."""
-        return self._use_jit
-
-    def recompile(self) -> None:
-        """
-        Attempt to recompile the loss evaluation.
-        This can be useful if the initial compilation failed but you want to try again.
-        
-        Raises
-        ------
-        RuntimeError
-            If JIT compilation fails.
-        """
-        if not self._use_jit:
-            raise RuntimeError("Cannot recompile: JIT compilation was disabled during initialization")
-        self._compile_eval_loss()
-
-    def _validate_kde_compatibility(self) -> bool:
-        """
-        Validate that all KDE models are compatible with JIT compilation.
-        
-        Returns
-        -------
-        bool
-            True if all KDE models are compatible, False otherwise.
-        """
-        if not self._use_jit:
-            return True
-            
-        try:
-            # Try to compile a simple test with each KDE model
-            for loss in self._losses:
-                test_input = torch.randn(2, 6, device=self._device)  # 6 distances for tetrahedral geometry
-                _ = torch.jit.script(loss.kde_pdf.score_samples)(test_input)
-            return True
-        except Exception:
-            return False
-
     def _eval_loss(self, positions: torch.tensor) -> torch.tensor:
         """
         Evaluate the loss for a batch of atom positions.
-        This method is automatically compiled after initialization if possible.
         
+        For each resonance group, computes the minimum loss among all resonant
+        structures, then applies soft minimum across all unique cyclization opportunities.
+
         Parameters
         ----------
         positions : torch.tensor
@@ -541,67 +395,57 @@ class ChemicalLossHandler(LossHandler):
             Tensor of shape (batch_size,) containing the combined loss values.
             Returns zeros if no valid cyclizations were found.
         """
-        # Check if input is on the correct device
-        if positions.device != self._device:
-            print(f"Warning: Input positions are on {positions.device} but KDE models are on {self._device}. "
-                  f"Transferring positions to {self._device}.")
-            positions = positions.to(self._device)
-
-        # Early return if no resonance groups
         if not self._resonance_groups:
-            return torch.zeros(positions.shape[0], device=self._device)
-
-        if self._compiled_eval_loss is not None:
-            return self._compiled_eval_loss(positions)
-        else:
-            # Fall back to non-compiled version (using optimized pre-allocation)
-            batch_size = positions.shape[0]
-            max_losses_per_group = max(len(losses) for losses in self._resonance_groups.values())
-            total_groups = len(self._resonance_groups)
+            # Handle case where no valid cyclizations were found
+            return torch.zeros(positions.shape[0], device=self.device)
+        
+        batch_size = positions.shape[0]
+        group_losses = []
+        
+        # Process each resonance group
+        for resonance_key, losses_in_group in self._resonance_groups.items():
+            # Compute losses for all instances in this resonance group
+            group_loss_values = []
             
-            # Pre-allocate tensors for all groups and losses
-            all_group_losses = torch.full(
-                (batch_size, total_groups, max_losses_per_group),
-                float('inf'),
-                device=self._device
-            )
-            
-            # Process all groups in parallel
-            for group_idx, (resonance_key, losses_in_group) in enumerate(self._resonance_groups.items()):
-                # Pre-allocate tensor for this group's losses
-                group_losses = torch.full(
-                    (batch_size, len(losses_in_group)),
-                    float('inf'),
-                    device=self._device
-                )
+            for loss in losses_in_group:
+                # Extract tetrahedral vertex positions
+                vertex_indices = [loss.atom_idxs[key] for key in loss.atom_idxs_keys]
                 
-                # Process all losses in this group in parallel
-                for loss_idx, loss in enumerate(losses_in_group):
-                    vertex_indices = [loss.atom_idxs[key] for key in loss.atom_idxs_keys]
-                    vertex_positions = positions[:, vertex_indices, :]
-                    
-                    v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
-                    
-                    atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
-                    atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
-                    
-                    dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
-                    
-                    logP = loss.kde_pdf.score_samples(dists)
-                    energy = -KB * self.temp * logP
-                    scaled_energy = energy * loss.weight + loss.offset
-                    group_losses[:, loss_idx] = scaled_energy
+                # Get positions for all 4 vertices: shape [batch_size, 4, 3]
+                vertex_positions = positions[:, vertex_indices, :]
                 
-                # Take minimum across all resonant structures in this group
-                group_min = torch.min(group_losses, dim=1)[0]
-                all_group_losses[:, group_idx, 0] = group_min
+                # Compute pairwise distances for tetrahedral geometry
+                # Using the same distance calculation as in ChemicalLoss._eval_loss
+                v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
+                
+                atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
+                atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
+                
+                dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
+                
+                # Evaluate KDE and convert to energy
+                logP = loss.kde_pdf.score_samples(dists)
+                energy = -KB * self.temp * logP
+                
+                # Apply weight and offset
+                scaled_energy = energy * loss.weight + loss.offset
+                group_loss_values.append(scaled_energy)
             
-            # Apply soft minimum across all unique cyclization groups
-            if total_groups == 1:
-                return all_group_losses[:, 0, 0]
+            # Take minimum across all resonant structures in this group
+            if len(group_loss_values) == 1:
+                group_min = group_loss_values[0]
             else:
-                group_losses = all_group_losses[:, :, 0]
-                return soft_min(group_losses, alpha=self.alpha)
+                group_stack = torch.stack(group_loss_values, dim=1)  # [batch_size, n_resonant]
+                group_min = torch.min(group_stack, dim=1)[0]  # [batch_size]
+            
+            group_losses.append(group_min)
+        
+        # Apply soft minimum across all unique cyclization groups
+        if len(group_losses) == 1:
+            return group_losses[0]
+        else:
+            all_group_losses = torch.stack(group_losses, dim=1)  # [batch_size, n_groups]
+            return soft_min(all_group_losses, alpha=self.alpha)
     
     def __call__(self, positions: torch.tensor) -> torch.tensor:
         """
@@ -736,7 +580,6 @@ class ChemicalLossHandler(LossHandler):
         - Strategy configuration details
         - Detailed analysis of each cyclization group
         - Statistics about resonant vs non-resonant groups
-        - JIT compilation status and device information
 
         Returns
         -------
@@ -763,9 +606,6 @@ class ChemicalLossHandler(LossHandler):
             kde_info[kde_file]['strategies'].add(type(loss).__name__)
             kde_info[kde_file]['losses'].append(loss)
         
-        # Check JIT compilation status
-        jit_status = "Enabled" if self._compiled_eval_loss is not None else "Disabled (fallback to non-compiled version)"
-        
         summary = [
             f"ChemicalLossHandler Summary",
             f"=" * 50,
@@ -773,7 +613,6 @@ class ChemicalLossHandler(LossHandler):
             f"Temperature: {self.temp}K",
             f"Soft minimum alpha: {self.alpha}",
             f"Device: {self.device}",
-            f"JIT Compilation: {jit_status}",
             f"",
             f"Overview:",
             f"  Total cyclization options: {total_losses}",
@@ -1014,45 +853,3 @@ class ChemicalLossHandler(LossHandler):
                 print(f"{j+1}. {loss_obj.method}: {val:.4f}")
         
         print("\nNote: Lower values indicate more favorable cyclization configurations.")
-
-    def _verify_gradients(self, positions: torch.tensor) -> bool:
-        """
-        Verify that gradients flow correctly through the loss computation.
-        
-        Parameters
-        ----------
-        positions : torch.tensor
-            Tensor of shape (batch_size, n_atoms, 3) containing atom positions.
-            
-        Returns
-        -------
-        bool
-            True if gradients flow correctly, False otherwise.
-        """
-        # Enable gradient tracking
-        positions.requires_grad_(True)
-        
-        # Compute loss
-        loss = self._eval_loss(positions)
-        
-        # Check if loss is a scalar
-        if loss.numel() != 1:
-            loss = loss.mean()
-            
-        # Compute gradients
-        loss.backward()
-        
-        # Check if gradients exist and are not None
-        has_gradients = positions.grad is not None
-        
-        # Check if gradients are finite
-        if has_gradients:
-            gradients_finite = torch.isfinite(positions.grad).all().item()
-        else:
-            gradients_finite = False
-            
-        # Reset gradient tracking
-        positions.requires_grad_(False)
-        positions.grad = None
-        
-        return has_gradients and gradients_finite
