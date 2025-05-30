@@ -47,9 +47,19 @@ def torsional_pca_plot(
     # Add coordinates as in-memory trajectory
     coords_A = coordinates.copy()
     u.load_new(coords_A, format=MemoryReader)
+
+    # Add after loading universe
+    expected_n_atoms = len(u.atoms)
+    if coordinates.shape[1] != expected_n_atoms:
+        raise ValueError(f"Coordinate atom count ({coordinates.shape[1]}) doesn't match PDB ({expected_n_atoms})")
     
     # Run Ramachandran analysis
     rama = Ramachandran(u.select_atoms("protein")).run()
+
+    # Add after protein selection
+    protein_atoms = u.select_atoms("protein")
+    if len(protein_atoms) == 0:
+        raise ValueError("No protein atoms found in the structure")
     
     # Get angles - shape: [n_frames, n_residues, 2] where 2 = [phi, psi]
     angles = rama.results.angles
@@ -76,6 +86,11 @@ def torsional_pca_plot(
         # Convert PC vectors to numpy if they're torch tensors
         pc_vectors_np = [vec.cpu().numpy() if isinstance(vec, torch.Tensor) else vec 
                         for vec in pc_vectors]
+        
+        expected_dim = n_residues * 2
+        for i, vec in enumerate(pc_vectors_np):
+            if len(vec) != expected_dim:
+                raise ValueError(f"PC vector {i} has dimension {len(vec)}, expected {expected_dim}")
         
         # Stack vectors into a projection matrix
         projection_matrix = np.vstack(pc_vectors_np)
