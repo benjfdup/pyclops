@@ -52,14 +52,14 @@ def torsional_pca_plot(
     expected_n_atoms = len(u.atoms)
     if coordinates.shape[1] != expected_n_atoms:
         raise ValueError(f"Coordinate atom count ({coordinates.shape[1]}) doesn't match PDB ({expected_n_atoms})")
-    
-    # Run Ramachandran analysis
-    rama = Ramachandran(u.select_atoms("protein")).run()
 
     # Add after protein selection
     protein_atoms = u.select_atoms("protein")
     if len(protein_atoms) == 0:
         raise ValueError("No protein atoms found in the structure")
+    
+    # Run Ramachandran analysis
+    rama = Ramachandran(protein_atoms).run()
     
     # Get angles - shape: [n_frames, n_residues, 2] where 2 = [phi, psi]
     angles = rama.results.angles
