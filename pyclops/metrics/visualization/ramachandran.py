@@ -16,8 +16,6 @@ def ramachandran_plot(
     save_path: Optional[Union[str, Path]] = None,
     dpi: int = 300,
     figsize: Tuple[int, int] = (10, 10),
-    cmap: str = "viridis",
-    alpha: float = 0.6,
     show: bool = True
 ) -> Tuple[plt.Figure, plt.Axes]:
     """
