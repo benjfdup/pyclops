@@ -68,6 +68,11 @@ class ChemicalLossHandler(LossHandler):
             **kwargs
         )
 
+    def _debug_print(self, message: str) -> None:
+        """Helper method to print debug messages if debug is enabled."""
+        if self._debug:
+            print(f"[DEBUG] {message}")
+
     def __init__(self,
                  pdb_path: Union[str, Path],
                  units_factor: float,
@@ -78,8 +83,15 @@ class ChemicalLossHandler(LossHandler):
                  alpha: float = -3.0,
                  mask: Optional[Set[int]] = None,
                  device: Optional[torch.device] = None,
+                 debug: bool = False,
                  ):
         """Initialize an ChemicalLossHandler with detailed control over parameters."""
+        self._debug = debug
+        self._debug_print("ChemicalLossHandler.__init__: Starting initialization")
+        self._debug_print(f"PDB path: {pdb_path}")
+        self._debug_print(f"Units factor: {units_factor}")
+        self._debug_print(f"Temperature: {temp}K, Alpha: {alpha}")
+        
         super().__init__(units_factor)
         self._pdb_path = Path(pdb_path)
         
@@ -89,10 +101,16 @@ class ChemicalLossHandler(LossHandler):
         # Load all strategy classes if not provided
         if strategies is None:
             strategies = self.default_strategies
+            self._debug_print(f"Using default strategies: {[s.__name__ for s in strategies]}")
+        else:
+            self._debug_print(f"Using provided strategies: {[s.__name__ for s in strategies]}")
             
         self._strategies = strategies
         self._weights = weights or {s: 1.0 for s in self._strategies}
         self._offsets = offsets or {s: 0.0 for s in self._strategies}
+        
+        self._debug_print(f"Strategy weights: {[(s.__name__, w) for s, w in self._weights.items()]}")
+        self._debug_print(f"Strategy offsets: {[(s.__name__, o) for s, o in self._offsets.items()]}")
         
         # Validate temperature
         assert temp > 0, f"Temperature (temp) must be positive, but got {temp}."
@@ -101,44 +119,100 @@ class ChemicalLossHandler(LossHandler):
 
         # Set device
         self._device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self._debug_print(f"Using device: {self._device}")
         
         # Load trajectory and prepare topology
+        self._debug_print(f"Loading trajectory from {self._pdb_path}")
         self._traj = md.load(str(self._pdb_path))
         self._topology = self._traj.topology
+        self._debug_print(f"Loaded trajectory with {self._traj.n_atoms} atoms, {self._traj.n_residues} residues")
         
         self._mask: Set[int] = mask or set()
+        if self._mask:
+            self._debug_print(f"Applying mask to residues: {sorted(self._mask)}")
         self._validate_mask()
 
         # Initialize losses and build resonance groups
+        self._debug_print("Initializing losses...")
         self._initialize_losses()
         
         # Pre-compute tensors for efficiency
+        self._debug_print("Pre-computing tensors...")
         self._precompute_tensors()
         
         # Compile the evaluation method
+        self._debug_print("Compiling JIT evaluation method...")
         self._compiled_eval_loss = torch.jit.script(self._eval_loss_impl)
+        
+        self._debug_print("ChemicalLossHandler initialization complete!")
+        self._debug_print(f"Total losses created: {len(self._losses)}")
+        self._debug_print(f"Total resonance groups: {len(self._resonance_groups)}")
     
     def _precompute_tensors(self) -> None:
         """Pre-compute tensors for efficient batch processing."""
+        self._debug_print("Starting tensor precomputation")
+        
         # Convert resonance groups to tensors for efficient processing
         self._resonance_groups_tensor = []
         self._resonance_groups_indices = []
+        self._resonance_groups_weights = []
+        self._resonance_groups_offsets = []
         
-        for resonance_key, losses_in_group in self._resonance_groups.items():
-            # Store indices for each loss in the group
+        self._debug_print(f"Processing {len(self._resonance_groups)} resonance groups...")
+        
+        for group_idx, (resonance_key, losses_in_group) in enumerate(self._resonance_groups.items()):
+            method_base, residue_pair = resonance_key
+            self._debug_print(f"Group {group_idx}: {method_base} | residues={sorted(residue_pair)} | variants={len(losses_in_group)}")
+            
+            # Store indices, weights, and offsets for each loss in the group
             group_indices = []
-            for loss in losses_in_group:
+            group_weights = []
+            group_offsets = []
+            
+            for loss_idx, loss in enumerate(losses_in_group):
+                self._debug_print(f"   Variant {loss_idx}: weight={loss._weight}, offset={loss._offset}")
+                self._debug_print(f"   Vertex indices: {loss._vertex_indices}")
+                
                 group_indices.append(loss._vertex_indices)
-            self._resonance_groups_indices.append(torch.stack(group_indices))
+                group_weights.append(loss._weight)
+                group_offsets.append(loss._offset)
+            
+            indices_tensor = torch.stack(group_indices)
+            weights_tensor = torch.tensor(group_weights, device=self._device)
+            offsets_tensor = torch.tensor(group_offsets, device=self._device)
+            
+            self._debug_print(f"   Created tensors - indices: {indices_tensor.shape}, weights: {weights_tensor.shape}, offsets: {offsets_tensor.shape}")
+            
+            self._resonance_groups_indices.append(indices_tensor)
+            self._resonance_groups_weights.append(weights_tensor)
+            self._resonance_groups_offsets.append(offsets_tensor)
         
         # Convert to tensors for efficient processing
-        self._resonance_groups_indices = torch.stack(self._resonance_groups_indices)
+        if self._resonance_groups_indices:
+            self._resonance_groups_indices = torch.stack(self._resonance_groups_indices)
+            self._resonance_groups_weights = torch.stack(self._resonance_groups_weights)
+            self._resonance_groups_offsets = torch.stack(self._resonance_groups_offsets)
+            
+            self._debug_print(f"Final tensor shapes:")
+            self._debug_print(f"   Indices: {self._resonance_groups_indices.shape}")
+            self._debug_print(f"   Weights: {self._resonance_groups_weights.shape}")
+            self._debug_print(f"   Offsets: {self._resonance_groups_offsets.shape}")
+        else:
+            # Handle empty case
+            self._resonance_groups_indices = torch.empty((0, 0, 4), dtype=torch.long, device=self._device)
+            self._resonance_groups_weights = torch.empty((0, 0), dtype=torch.float, device=self._device)
+            self._resonance_groups_offsets = torch.empty((0, 0), dtype=torch.float, device=self._device)
+            self._debug_print(f"No resonance groups found - created empty tensors")
+        
+        self._debug_print("Completed tensor precomputation")
     
     @staticmethod
     @torch.jit.script
     def _eval_loss_impl(
         positions: torch.Tensor,
         resonance_groups_indices: torch.Tensor,
+        resonance_groups_weights: torch.Tensor,
+        resonance_groups_offsets: torch.Tensor,
         temp: float,
         alpha: float,
         device: torch.device,
@@ -156,20 +230,23 @@ class ChemicalLossHandler(LossHandler):
         
         # Process each resonance group
         for group_idx in range(resonance_groups_indices.shape[0]):
-            # Get pre-computed indices for this group
+            # Get pre-computed indices, weights, and offsets for this group
             group_indices = resonance_groups_indices[group_idx]
+            group_weights = resonance_groups_weights[group_idx]
+            group_offsets = resonance_groups_offsets[group_idx]
             
             # Compute losses for all instances in this resonance group
             group_loss_values = []
             
             for loss_idx in range(group_indices.shape[0]):
-                
                 # Use pre-computed log probabilities
                 logP = log_probs[group_idx, loss_idx]
                 energy = -kb * temp * logP
                 
-                # Apply weight and offset (hardcoded for now)
-                scaled_energy = energy
+                # Apply weight and offset
+                weight = group_weights[loss_idx]
+                offset = group_offsets[loss_idx]
+                scaled_energy = weight * energy + offset
                 group_loss_values.append(scaled_energy)
             
             # Take minimum across all resonant structures in this group
@@ -192,37 +269,82 @@ class ChemicalLossHandler(LossHandler):
     
     def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
         """Evaluate the loss for a batch of atom positions."""
+        self._debug_print("Starting loss evaluation")
+        self._debug_print(f"Input positions shape: {positions.shape}")
+        self._debug_print(f"Device: {positions.device}")
+        
         # Pre-compute log probabilities for all resonance groups
         log_probs = []
-        for group in self._resonance_groups.values():
+        total_kde_evaluations = 0
+        
+        for group_idx, group in enumerate(self._resonance_groups.values()):
+            self._debug_print(f"Processing resonance group {group_idx} with {len(group)} variants")
             group_log_probs = []
-            for loss in group:
+            
+            for loss_idx, loss in enumerate(group):
+                self._debug_print(f"   Evaluating variant {loss_idx}: {loss.method}")
+                self._debug_print(f"     Weight: {loss._weight}, Offset: {loss._offset}")
+                
                 # Extract vertex positions
                 vertex_positions = positions[:, loss._vertex_indices, :]
                 v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
+                
+                self._debug_print(f"     Vertex indices: {loss._vertex_indices}")
+                self._debug_print(f"     Vertex positions shape: {vertex_positions.shape}")
                 
                 # Calculate distances
                 atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
                 atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
                 dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
                 
+                self._debug_print(f"     Distances shape: {dists.shape}")
+                self._debug_print(f"     Distance stats: min={dists.min():.3f}, max={dists.max():.3f}, mean={dists.mean():.3f}")
+                
                 # Evaluate KDE
                 logP = loss.kde_pdf.score_samples(dists)
+                self._debug_print(f"     KDE log probabilities shape: {logP.shape}")
+                self._debug_print(f"     LogP stats: min={logP.min():.3f}, max={logP.max():.3f}, mean={logP.mean():.3f}")
+                
                 group_log_probs.append(logP)
+                total_kde_evaluations += 1
+                
             log_probs.append(torch.stack(group_log_probs))
         
         # Stack all log probabilities
-        log_probs = torch.stack(log_probs)
+        if log_probs:
+            log_probs = torch.stack(log_probs)
+            self._debug_print(f"Stacked log_probs shape: {log_probs.shape}")
+        else:
+            self._debug_print(f"No log probabilities computed - empty groups")
+            return torch.zeros(positions.shape[0], device=positions.device)
         
-        return self._compiled_eval_loss(
+        self._debug_print(f"Total KDE evaluations: {total_kde_evaluations}")
+        self._debug_print(f"Calling compiled evaluation function...")
+        self._debug_print(f"Pre-compiled inputs:")
+        self._debug_print(f"   positions: {positions.shape}")
+        self._debug_print(f"   indices: {self._resonance_groups_indices.shape}")
+        self._debug_print(f"   weights: {self._resonance_groups_weights.shape}")
+        self._debug_print(f"   offsets: {self._resonance_groups_offsets.shape}")
+        self._debug_print(f"   log_probs: {log_probs.shape}")
+        self._debug_print(f"   temp: {self._temp}, alpha: {self._alpha}")
+        
+        result = self._compiled_eval_loss(
             positions,
             self._resonance_groups_indices,
+            self._resonance_groups_weights,
+            self._resonance_groups_offsets,
             self._temp,
             self._alpha,
             self._device,
             KB,
             log_probs
         )
+        
+        self._debug_print("Completed evaluation")
+        self._debug_print(f"Result shape: {result.shape}")
+        self._debug_print(f"Result stats: min={result.min():.3f}, max={result.max():.3f}, mean={result.mean():.3f}")
+        
+        return result
     
     def _validate_mask(self) -> None:
         """Validate the mask indices based on the topology."""
@@ -237,6 +359,8 @@ class ChemicalLossHandler(LossHandler):
     
     def _initialize_losses(self) -> None:
         """Initialize all loss functions and organize them into resonance groups."""
+        self._debug_print("Starting loss initialization")
+        
         if not self.strategies:
             raise ValueError(
                 "No cyclization strategies provided and default_strategies is empty."
@@ -246,24 +370,36 @@ class ChemicalLossHandler(LossHandler):
         traj = self.traj
         
         # Pre-compute atom indices for faster lookup
+        self._debug_print(f"Pre-computing atom indices for {len(self.bonding_atoms)} atom types")
         atom_idx_dict = self.precompute_atom_indices(
             list(self.topology.residues),
             self.bonding_atoms
         )
+        self._debug_print(f"Found {len(atom_idx_dict)} atom mappings")
         
         # Dictionary to group losses by resonance key
         resonance_groups: Dict[Tuple[str, frozenset], List[ChemicalLoss]] = {}
+        total_losses_created = 0
         
         # Create all loss instances
-        for strat in self.strategies:
-            for idxs_method_pair in strat.get_indexes_and_methods(traj, atom_idx_dict):
+        for strat_idx, strat in enumerate(self.strategies):
+            self._debug_print(f"Processing strategy {strat_idx}: {strat.__name__}")
+            strategy_losses = 0
+            
+            for pair_idx, idxs_method_pair in enumerate(strat.get_indexes_and_methods(traj, atom_idx_dict)):
                 # Skip if either residue in the pair is masked
                 if self._mask and (idxs_method_pair.pair & self._mask):
+                    self._debug_print(f"   Skipping pair {pair_idx} (residues {sorted(idxs_method_pair.pair)}) - masked")
                     continue
                 
                 # Extract the base method (without resonance info) for grouping
                 method_base = idxs_method_pair.method.split(" (")[0]
                 resonance_key = (method_base, frozenset(idxs_method_pair.pair))
+                
+                self._debug_print(f"   Creating loss for pair {pair_idx}: {idxs_method_pair.method}")
+                self._debug_print(f"     Residues: {sorted(idxs_method_pair.pair)}")
+                self._debug_print(f"     Atom indices: {idxs_method_pair.indexes}")
+                self._debug_print(f"     Weight: {self._weights[strat]}, Offset: {self._offsets[strat]}")
                 
                 # Create loss instance
                 loss = strat(
@@ -279,7 +415,15 @@ class ChemicalLossHandler(LossHandler):
                 # Group by resonance key
                 if resonance_key not in resonance_groups:
                     resonance_groups[resonance_key] = []
+                    self._debug_print(f"     Created new resonance group: {method_base}")
+                else:
+                    self._debug_print(f"     Added to existing resonance group: {method_base}")
+                    
                 resonance_groups[resonance_key].append(loss)
+                strategy_losses += 1
+                total_losses_created += 1
+            
+            self._debug_print(f"Strategy {strat.__name__} created {strategy_losses} losses")
         
         # Store the grouped structure for efficient evaluation
         self._resonance_groups = resonance_groups
@@ -288,6 +432,15 @@ class ChemicalLossHandler(LossHandler):
         self._losses = []
         for group in resonance_groups.values():
             self._losses.extend(group)
+        
+        self._debug_print("Completed")
+        self._debug_print(f"Total losses created: {total_losses_created}")
+        self._debug_print(f"Total resonance groups: {len(resonance_groups)}")
+        
+        # Print resonance group summary
+        for resonance_key, losses_in_group in resonance_groups.items():
+            method_base, residue_pair = resonance_key
+            self._debug_print(f"Group: {method_base} | residues={sorted(residue_pair)} | variants={len(losses_in_group)}")
     
     @staticmethod
     def precompute_atom_indices(residues, atom_names) -> Dict[Tuple[int, str], int]:
@@ -351,7 +504,7 @@ class ChemicalLossHandler(LossHandler):
         
         # Core configuration
         config = [
-            f"CONFIG: pdb={self.pdb_path.name} | temp={self.temp}K | alpha={self.alpha} | device={self.device}",
+            f"CONFIG: pdb={self.pdb_path.name} | temp={self.temp}K | alpha={self.alpha} | device={self.device} | DEBUG=ON",
             f"UNITS: factor={self.units_factor}",
             f"STATS: total_losses={len(self._losses)} | groups={len(self._resonance_groups)} | strategies={len(self.strategies)}"
         ]
