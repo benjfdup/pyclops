@@ -10,13 +10,10 @@ from sklearn.decomposition import PCA
 def torsional_pca_plot(
     coordinates: Union[torch.Tensor, np.ndarray],
     pdb_file: Union[str, Path],
-    frame_idx: Optional[int] = None,
     title: str = "Torsional PCA Plot",
     save_path: Optional[Union[str, Path]] = None,
     dpi: int = 300,
     figsize: Tuple[int, int] = (10, 10),
-    cmap: str = "viridis",
-    alpha: float = 0.6,
     show: bool = True,
     pc_vectors: Optional[List[Union[torch.Tensor, np.ndarray]]] = None
 ) -> Tuple[plt.Figure, plt.Axes]:
@@ -27,13 +24,10 @@ def torsional_pca_plot(
     Args:
         coordinates: Input coordinates
         pdb_file: Path to PDB file
-        frame_idx: Optional frame index
         title: Plot title
         save_path: Optional path to save the plot
         dpi: DPI for the plot
         figsize: Figure size
-        cmap: Colormap for the histogram
-        alpha: Alpha value for the plot
         show: Whether to show the plot
         pc_vectors: Optional list of two PC vectors to project the data onto. If provided, 
                    these vectors will be used instead of computing new PCs.
