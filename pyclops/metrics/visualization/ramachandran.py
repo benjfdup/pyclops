@@ -12,7 +12,6 @@ from pathlib import Path
 def ramachandran_plot(
     coordinates: Union[torch.Tensor, np.ndarray],
     pdb_file: Union[str, Path],
-    frame_idx: Optional[int] = None,
     title: str = "Ramachandran Plot",
     save_path: Optional[Union[str, Path]] = None,
     dpi: int = 300,
@@ -28,9 +27,7 @@ def ramachandran_plot(
     try:
         from MDAnalysis.analysis.dihedrals import Ramachandran
     except ImportError:
-        print("MDAnalysis Ramachandran analysis not available, using custom implementation")
-        return ramachandran_plot(coordinates, pdb_file, frame_idx, title, save_path, 
-                               dpi, figsize, cmap, alpha, show)
+        raise ImportError("MDAnalysis Ramachandran analysis not available")
     
     # Convert torch tensor to numpy if needed
     if isinstance(coordinates, torch.Tensor):
