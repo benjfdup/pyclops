@@ -727,6 +727,16 @@ class ChemicalLossHandler(LossHandler):
         # Add final aggregation info
         if len(group_minimums) > 1:
             log_lines.append(f"  Final aggregation (soft_min with α={self._alpha}):")
+            
+            # Add header showing what each column represents
+            group_labels = []
+            for group_idx, (resonance_key, _) in enumerate(self._resonance_groups.items()):
+                method_base, residue_pair = resonance_key
+                group_labels.append(f"Col{group_idx}={method_base}|res={sorted(residue_pair)}")
+            header_line = "    " + " | ".join(group_labels)
+            log_lines.append(header_line)
+            log_lines.append("    " + "-" * len(header_line.strip()))
+            
             for batch_idx in range(batch_size):
                 group_mins_str = ", ".join([f"{group_min[batch_idx]:.4f}" for group_min in group_minimums])
                 log_lines.append(f"    Batch {batch_idx}: [{group_mins_str}] → final={final_loss[batch_idx]:.4f}")
@@ -734,5 +744,10 @@ class ChemicalLossHandler(LossHandler):
             log_lines.append(f"  Final loss (single group):")
             for batch_idx in range(batch_size):
                 log_lines.append(f"    Batch {batch_idx}: {final_loss[batch_idx]:.4f}")
+        
+        # Add total sum for verification
+        total_loss = torch.sum(final_loss).item()
+        log_lines.append("")
+        log_lines.append(f"TOTAL SUM (across all batches): {total_loss:.4f}")
         
         return "\n".join(log_lines)
