@@ -1,4 +1,4 @@
-# PyCLOPS: Cyclic Loss for Optimization of Peptide Structures
+# PyCLOPS: Cyclic Loss for the Optimization of Peptide Structures
 
 PyCLOPS is a Python package for evaluating and optimizing cyclic peptide structures through specialized loss functions. It provides tools for detecting and scoring potential cyclization sites in peptide structures, computing energetic penalties based on molecular geometry, and guiding the optimization of cyclic peptide conformations.
 
@@ -30,7 +30,7 @@ Clone the repository and install the package in development mode:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pyclops.git
+git clone https://github.com/benfdup/pyclops.git
 cd pyclops
 
 # Create a conda environment
@@ -40,31 +40,79 @@ conda activate pyclops
 # Install dependencies
 conda install -c conda-forge mdtraj
 conda install pytorch -c pytorch
-pip install MDAnalysis matplotlib  # for visualization features
 
 # Install PyClops in development mode
 pip install -e .
 ```
 
+### Optional Dependencies
+
+PyCLOPS includes several optional dependencies that enable additional functionality:
+
+#### Visualization Tools
+
+```bash
+pip install pyclops[visualization]  # Installs matplotlib, nglview, and MDAnalysis
+```
+
+- `matplotlib`: Required for plotting metrics and visualizations
+- `nglview`: Required for 3D structure visualization
+- `MDAnalysis`: Required for advanced molecular dynamics analysis
+
+#### Structure Analysis
+
+```bash
+pip install pyclops[structure]  # Installs rosetta and openmm
+```
+
+- `rosetta`: Required for Rosetta-based structure scoring and analysis
+- `openmm`: Required for OpenMM-based structure scoring and relaxation
+
+#### PCA Analysis of Phi and Psi
+
+```bash
+pip install pyclops[ml]  # Installs scikit-learn
+```
+
+- `scikit-learn`: Required for machine learning-based metrics and analysis
+
+#### All Optional Dependencies
+
+```bash
+pip install pyclops[all]  # Installs all optional dependencies
+```
+
+Note: The `rosetta` package may require special installation instructions as it's not available through PyPI. Please refer to the Rosetta documentation for installation details.
+
 ### From Source with Pip
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pyclops.git
+git clone https://github.com/benfdup/pyclops.git
 cd pyclops
 
 # Install in development mode
-pip install -e .
+pip install -e .  # Basic installation
+pip install -e ".[all]"  # Install with all optional dependencies
 ```
 
 ### Requirements
+
+Core Requirements:
 
 - Python >=3.9
 - torch >=2.5.1
 - mdtraj >=1.10.3
 - numpy >=1.26.3
+
+Optional Requirements (see above for installation instructions):
+
 - MDAnalysis >=2.0.0
 - matplotlib >=3.0.0
+- nglview >=3.0.0
+- openmm >=7.0.0
+- scikit-learn >=1.0.0
+- rosetta (version depends on your installation)
 
 ## Quick Start
 
@@ -220,8 +268,8 @@ pyclops/
 If you use PyClops in your research, please cite:
 
 ```
-@software{pyclops2023,
-  author = {Your Name},
+@software{pyclops2025,
+  author = {Benjamin du Pont},
   title = {PyClops: Cyclic Loss Operations for Peptide Structures},
   year = {2023},
   url = {https://github.com/yourusername/pyclops}

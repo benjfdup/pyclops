@@ -8,15 +8,36 @@ setup(
         "torch>=2.0.0",
         "mdtraj",
         "numpy>=2.0.0",
-        # Additional dependencies may be needed
     ],
-    author="Your Name",
-    author_email="your.email@example.com",
+    extras_require={
+        "visualization": [
+            "matplotlib>=3.0.0",
+            "nglview>=3.0.0",
+            "MDAnalysis>=2.0.0",
+        ],
+        "structure": [
+            "rosetta",  # Note: This might need specific installation instructions
+            "openmm>=7.0.0",
+        ],
+        "ml": [
+            "scikit-learn>=1.0.0",
+        ],
+        "all": [
+            "matplotlib>=3.0.0",
+            "nglview>=3.0.0",
+            "MDAnalysis>=2.0.0",
+            "rosetta",  # Note: This might need specific installation instructions
+            "openmm>=7.0.0",
+            "scikit-learn>=1.0.0",
+        ],
+    },
+    author="Ben du Pont",
+    author_email="benfdup@gmail.com",
     description="Cyclic Loss Optimization for Peptide Structures", #CycLOPS, PycLOPS
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     keywords="peptide, structure, cyclization, computational-chemistry, loss-functions",
-    url="https://github.com/yourusername/pyclops",
+    url="https://github.com/benfdup/pyclops",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
