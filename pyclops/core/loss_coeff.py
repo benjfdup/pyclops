@@ -9,7 +9,7 @@ import torch
 # can be multiplied by loss values.
 ######################################################################
 
-class LossCoeff(ABC):
+class LossCoeff(ABC): # this isn't so useful now, but was useful before we could condition the final structures.
     """
     Abstract base class to handle loss function coefficients for cyclic conditioning.
     
