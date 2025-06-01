@@ -274,7 +274,7 @@ class ChemicalLossHandler(LossHandler):
         if resonance_groups_indices.shape[0] == 0:
             return torch.zeros(positions.shape[0], device=device)
         
-        batch_size = positions.shape[0]
+        #batch_size = positions.shape[0]
         group_losses = []
         
         # Process each resonance group
