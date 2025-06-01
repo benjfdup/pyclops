@@ -121,7 +121,7 @@ class KernelDensity(nn.Module):
 
         return self
 
-    def score_samples(self, X: torch.Tensor, batch_size: int = 128) -> torch.Tensor:
+    def score_samples(self, X: torch.Tensor, batch_size: int = 128) -> torch.Tensor: # perhaps increase this...
         """Compute the log-likelihood of each sample under the model.
 
         Parameters

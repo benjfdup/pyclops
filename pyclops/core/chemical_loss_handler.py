@@ -541,7 +541,7 @@ class ChemicalLossHandler(LossHandler):
             
             # Add first variant details as reference
             first_loss = losses_in_group[0]
-            atom_info = [f"{k}:{v}" for k, v in first_loss.atom_idxs.items()]
+            atom_info = [f"{k}:{v}" for k, v in first_loss._atom_idxs.items()]
             groups_info.append(f"    atoms={','.join(atom_info)} | kde={Path(first_loss.kde_file).name}")
             if is_resonant:
                 groups_info.append(f"    additional_variants={len(losses_in_group)-1}")
