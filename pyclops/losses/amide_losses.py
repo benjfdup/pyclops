@@ -1,6 +1,5 @@
 from typing import Dict, List
 from abc import ABCMeta
-import warnings
 
 import mdtraj as md
 
@@ -42,59 +41,64 @@ class AmideHead2Tail(Amide):
     @classmethod
     @inherit_docstring(Amide.get_indexes_and_methods)
     def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict) -> List[IndexesMethodPair]:
-        # Get all residues excluding caps
-        valid_residues = [r for r in traj.topology.residues if r.name not in ["ACE", "NME", "NHE"]]
+        # Get all residues, excluding common caps
+        # TODO: review this in depth
+        exclude_residue_names = ["ACE", "NME", "NHE"]
+        all_residues = list(traj.topology.residues)
+        valid_residues = [r for r in all_residues if r.name not in exclude_residue_names]
         
+        # Need at least 2 residues for head-to-tail connection
         if len(valid_residues) < 2:
-            warnings.warn("[AmideHead2Tail] Not enough residues to define terminals.")
             return []
+        
+        # Get first (N-terminal) and last (C-terminal) residues
+        n_term_residue = valid_residues[0]
+        c_term_residue = valid_residues[-1]
+        
+        # Find required atoms
+        # N-terminal atoms (acceptor)
+        n1_idx = atom_indexes_dict.get((n_term_residue.index, 'N'))  # N-terminal nitrogen
+        c2_idx = atom_indexes_dict.get((n_term_residue.index, 'CA'))  # Alpha carbon
+        
+        # C-terminal atoms (donor)
+        c1_idx = atom_indexes_dict.get((c_term_residue.index, 'C'))  # Carboxyl carbon
+        
+        # Check if core atoms exist
+        if any(idx is None for idx in [n1_idx, c1_idx, c2_idx]):
+            return []
+        
+        # Find all available resonant oxygen atoms
+        oxygen_atoms = []
+        for oxygen_name in ['O', 'OXT']:
+            oxygen_idx = atom_indexes_dict.get((c_term_residue.index, oxygen_name))
+            if oxygen_idx is not None:
+                oxygen_atoms.append((oxygen_name, oxygen_idx))
+        
+        # If no oxygen atoms found, return empty
+        if not oxygen_atoms:
+            return []
+        
+        # Create separate loss methods for each resonant form
+        result = []
+        for oxygen_name, oxygen_idx in oxygen_atoms:
+            # Create atom indices dictionary for this resonant form
+            atom_idxs = {
+                'N1': n1_idx,      # N-terminal nitrogen
+                'C1': c1_idx,      # C-terminal carboxyl carbon
+                'O1': oxygen_idx,  # C-terminal carboxyl oxygen (potentially resonant)
+                'C2': c2_idx       # N-terminal alpha carbon
+            }
             
-        # Get N-terminal and C-terminal residues
-        n_term = valid_residues[0]
-        c_term = valid_residues[-1]
+            # Create method description with resonance info
+            if len(oxygen_atoms) > 1:
+                method_str = f"AmideHead2Tail, N-term {n_term_residue.name} {n_term_residue.index} -> C-term {c_term_residue.name} {c_term_residue.index} (resonant: {oxygen_name})"
+            else:
+                method_str = f"AmideHead2Tail, N-term {n_term_residue.name} {n_term_residue.index} -> C-term {c_term_residue.name} {c_term_residue.index}"
+            
+            # Create and add the IndexesMethodPair
+            result.append(IndexesMethodPair(atom_idxs, method_str, {n_term_residue.index, c_term_residue.index}))
         
-        # Define required atoms for N-terminal (acceptor)
-        n_term_atoms = {
-            'N1': ['N'],        # N-terminal nitrogen
-            'C2': ['CA'],       # Alpha carbon of N-terminal residue
-        }
-        
-        # Define required atoms for C-terminal (donor)
-        c_term_atoms = {
-            'C1': ['C'],        # C-terminal carboxyl carbon
-            'O1': ['O', 'OXT'], # C-terminal carboxyl oxygens (resonant)
-        }
-        
-        # Get atom indices for N-terminal
-        n_term_indices = {}
-        for key, atom_names in n_term_atoms.items():
-            for name in atom_names:
-                if (n_term.index, name) in atom_indexes_dict:
-                    n_term_indices[key] = atom_indexes_dict[(n_term.index, name)]
-                    break
-            if key not in n_term_indices:
-                warnings.warn(f"[AmideHead2Tail] N-terminal {n_term.name} {n_term.index} missing required atom {atom_names}")
-                return []
-                
-        # Get atom indices for C-terminal
-        c_term_indices = {}
-        for key, atom_names in c_term_atoms.items():
-            for name in atom_names:
-                if (c_term.index, name) in atom_indexes_dict:
-                    c_term_indices[key] = atom_indexes_dict[(c_term.index, name)]
-                    break
-            if key not in c_term_indices:
-                warnings.warn(f"[AmideHead2Tail] C-terminal {c_term.name} {c_term.index} missing required atom {atom_names}")
-                return []
-        
-        # Combine indices into final dictionary
-        atom_dict = {**n_term_indices, **c_term_indices}
-        
-        # Create method string
-        method_str = f"AmideHead2Tail, N-term {n_term.name} {n_term.index} -> C-term {c_term.name} {c_term.index}"
-        
-        # Create and return IndexesMethodPair
-        return [IndexesMethodPair(atom_dict, method_str, {n_term.index, c_term.index})]
+        return result
 
 
 class AmideSide2Side(Amide):

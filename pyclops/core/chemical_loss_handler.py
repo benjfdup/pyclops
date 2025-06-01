@@ -189,19 +189,67 @@ class ChemicalLossHandler(LossHandler):
         
         # Convert to tensors for efficient processing
         if self._resonance_groups_indices:
-            self._resonance_groups_indices = torch.stack(self._resonance_groups_indices)
-            self._resonance_groups_weights = torch.stack(self._resonance_groups_weights)
-            self._resonance_groups_offsets = torch.stack(self._resonance_groups_offsets)
+            # Find the maximum number of variants across all groups for padding
+            max_variants = max(tensor.shape[0] for tensor in self._resonance_groups_indices)
+            self._debug_print(f"Maximum variants across groups: {max_variants}")
+            
+            # Pad all tensors to the same size
+            padded_indices = []
+            padded_weights = []
+            padded_offsets = []
+            
+            for i, (indices_tensor, weights_tensor, offsets_tensor) in enumerate(zip(
+                self._resonance_groups_indices, self._resonance_groups_weights, self._resonance_groups_offsets
+            )):
+                current_variants = indices_tensor.shape[0]
+                if current_variants < max_variants:
+                    # Pad with zeros (dummy values that won't be used)
+                    padding_needed = max_variants - current_variants
+                    
+                    # Pad indices with zeros
+                    indices_padding = torch.zeros((padding_needed, 4), dtype=torch.long, device=self._device)
+                    padded_indices_tensor = torch.cat([indices_tensor, indices_padding], dim=0)
+                    
+                    # Pad weights with zeros
+                    weights_padding = torch.zeros(padding_needed, device=self._device)
+                    padded_weights_tensor = torch.cat([weights_tensor, weights_padding], dim=0)
+                    
+                    # Pad offsets with zeros
+                    offsets_padding = torch.zeros(padding_needed, device=self._device)
+                    padded_offsets_tensor = torch.cat([offsets_tensor, offsets_padding], dim=0)
+                    
+                    self._debug_print(f"   Group {i}: padded from {current_variants} to {max_variants} variants")
+                else:
+                    padded_indices_tensor = indices_tensor
+                    padded_weights_tensor = weights_tensor
+                    padded_offsets_tensor = offsets_tensor
+                    self._debug_print(f"   Group {i}: no padding needed ({current_variants} variants)")
+                
+                padded_indices.append(padded_indices_tensor)
+                padded_weights.append(padded_weights_tensor)
+                padded_offsets.append(padded_offsets_tensor)
+            
+            # Now we can safely stack tensors of equal size
+            self._resonance_groups_indices = torch.stack(padded_indices)
+            self._resonance_groups_weights = torch.stack(padded_weights)
+            self._resonance_groups_offsets = torch.stack(padded_offsets)
+            
+            # Store the actual number of variants for each group to avoid processing padding
+            self._resonance_groups_sizes = torch.tensor([
+                len(list(self._resonance_groups.values())[i]) for i in range(len(self._resonance_groups))
+            ], device=self._device)
             
             self._debug_print(f"Final tensor shapes:")
             self._debug_print(f"   Indices: {self._resonance_groups_indices.shape}")
             self._debug_print(f"   Weights: {self._resonance_groups_weights.shape}")
             self._debug_print(f"   Offsets: {self._resonance_groups_offsets.shape}")
+            self._debug_print(f"   Sizes: {self._resonance_groups_sizes}")
         else:
             # Handle empty case
             self._resonance_groups_indices = torch.empty((0, 0, 4), dtype=torch.long, device=self._device)
             self._resonance_groups_weights = torch.empty((0, 0), dtype=torch.float, device=self._device)
             self._resonance_groups_offsets = torch.empty((0, 0), dtype=torch.float, device=self._device)
+            self._resonance_groups_sizes = torch.empty((0,), dtype=torch.long, device=self._device)
             self._debug_print(f"No resonance groups found - created empty tensors")
         
         self._debug_print("Completed tensor precomputation")
@@ -213,6 +261,7 @@ class ChemicalLossHandler(LossHandler):
         resonance_groups_indices: torch.Tensor,
         resonance_groups_weights: torch.Tensor,
         resonance_groups_offsets: torch.Tensor,
+        resonance_groups_sizes: torch.Tensor,
         temp: float,
         alpha: float,
         device: torch.device,
@@ -230,15 +279,18 @@ class ChemicalLossHandler(LossHandler):
         
         # Process each resonance group
         for group_idx in range(resonance_groups_indices.shape[0]):
+            # Get the actual number of variants for this group
+            actual_variants = int(resonance_groups_sizes[group_idx])
+            
             # Get pre-computed indices, weights, and offsets for this group
             group_indices = resonance_groups_indices[group_idx]
             group_weights = resonance_groups_weights[group_idx]
             group_offsets = resonance_groups_offsets[group_idx]
             
-            # Compute losses for all instances in this resonance group
+            # Compute losses for all instances in this resonance group (only up to actual_variants)
             group_loss_values = []
             
-            for loss_idx in range(group_indices.shape[0]):
+            for loss_idx in range(actual_variants):
                 # Use pre-computed log probabilities
                 logP = log_probs[group_idx, loss_idx]
                 energy = -kb * temp * logP
@@ -307,7 +359,15 @@ class ChemicalLossHandler(LossHandler):
                 
                 group_log_probs.append(logP)
                 total_kde_evaluations += 1
-                
+            
+            # Pad group log_probs to match the maximum number of variants
+            if len(group_log_probs) < self._resonance_groups_indices.shape[1]:
+                padding_needed = self._resonance_groups_indices.shape[1] - len(group_log_probs)
+                # Pad with zeros (these won't be used due to group sizes)
+                for _ in range(padding_needed):
+                    group_log_probs.append(torch.zeros_like(group_log_probs[0]))
+                self._debug_print(f"   Padded group {group_idx} log_probs from {len(group)} to {len(group_log_probs)} variants")
+            
             log_probs.append(torch.stack(group_log_probs))
         
         # Stack all log probabilities
@@ -333,6 +393,7 @@ class ChemicalLossHandler(LossHandler):
             self._resonance_groups_indices,
             self._resonance_groups_weights,
             self._resonance_groups_offsets,
+            self._resonance_groups_sizes,
             self._temp,
             self._alpha,
             self._device,
