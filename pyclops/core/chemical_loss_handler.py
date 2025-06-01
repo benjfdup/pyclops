@@ -283,7 +283,7 @@ class ChemicalLossHandler(LossHandler):
             actual_variants = int(resonance_groups_sizes[group_idx])
             
             # Get pre-computed indices, weights, and offsets for this group
-            group_indices = resonance_groups_indices[group_idx]
+            #group_indices = resonance_groups_indices[group_idx]
             group_weights = resonance_groups_weights[group_idx]
             group_offsets = resonance_groups_offsets[group_idx]
             
@@ -618,3 +618,121 @@ class ChemicalLossHandler(LossHandler):
             "",
             *groups_info
         ])
+
+    def compute_individual_losses_log(self, positions: torch.Tensor) -> str:
+        """
+        Compute and return a concise string showing individual loss values for logging.
+        Reuses the core evaluation logic from _eval_loss but provides detailed breakdown.
+        
+        Args:
+            positions: Tensor of shape [batch_size, n_atoms, 3]
+            
+        Returns:
+            String with individual loss values, group minimums, and final loss for logging
+        """
+        if self._resonance_groups_indices.shape[0] == 0:
+            return "No losses computed - empty resonance groups"
+        
+        batch_size = positions.shape[0]
+        log_lines = [f"Loss breakdown for {batch_size} batch(es):"]
+        
+        # Pre-compute log probabilities for all resonance groups (reusing _eval_loss logic)
+        log_probs = []
+        group_losses_detailed = []
+        
+        for group_idx, (resonance_key, group) in enumerate(self._resonance_groups.items()):
+            method_base, residue_pair = resonance_key
+            group_log_probs = []
+            group_individual_losses = []
+            
+            for loss_idx, loss in enumerate(group):
+                # Extract vertex positions (same as _eval_loss)
+                vertex_positions = positions[:, loss._vertex_indices, :]
+                v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
+                
+                # Calculate distances (same as _eval_loss)
+                atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
+                atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
+                dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
+                
+                # Evaluate KDE (same as _eval_loss)
+                logP = loss.kde_pdf.score_samples(dists)
+                energy = -KB * self._temp * logP
+                
+                # Apply weight and offset
+                scaled_energy = loss._weight * energy + loss._offset
+                
+                group_log_probs.append(logP)
+                group_individual_losses.append({
+                    'method': loss.method,
+                    'residues': sorted(residue_pair),
+                    'energy': scaled_energy,
+                    'weight': loss._weight,
+                    'offset': loss._offset
+                })
+            
+            # Pad group log_probs to match tensor structure
+            if len(group_log_probs) < self._resonance_groups_indices.shape[1]:
+                padding_needed = self._resonance_groups_indices.shape[1] - len(group_log_probs)
+                for _ in range(padding_needed):
+                    group_log_probs.append(torch.zeros_like(group_log_probs[0]))
+            
+            log_probs.append(torch.stack(group_log_probs))
+            group_losses_detailed.append(group_individual_losses)
+        
+        # Stack all log probabilities
+        log_probs = torch.stack(log_probs) if log_probs else torch.empty((0, 0, batch_size), device=positions.device)
+        
+        # Compute group minimums and add to log
+        group_minimums = []
+        for group_idx, group_losses in enumerate(group_losses_detailed):
+            method_base = list(self._resonance_groups.keys())[group_idx][0]
+            residue_pair = list(self._resonance_groups.keys())[group_idx][1]
+            
+            if len(group_losses) == 1:
+                # Single variant
+                loss_info = group_losses[0]
+                group_min = loss_info['energy']
+                log_lines.append(f"  Group {group_idx} ({method_base} | res={sorted(residue_pair)}): SINGLE variant")
+                for batch_idx in range(batch_size):
+                    log_lines.append(f"    Batch {batch_idx}: {loss_info['method']} = {group_min[batch_idx]:.4f}")
+            else:
+                # Multiple resonant variants
+                log_lines.append(f"  Group {group_idx} ({method_base} | res={sorted(residue_pair)}): {len(group_losses)} resonant variants")
+                
+                energies = torch.stack([loss_info['energy'] for loss_info in group_losses], dim=1)
+                group_min = torch.min(energies, dim=1)[0]
+                
+                for batch_idx in range(batch_size):
+                    individual_values = [f"{loss_info['method'].split('(')[1].rstrip(')')}: {loss_info['energy'][batch_idx]:.4f}" 
+                                       for loss_info in group_losses]
+                    log_lines.append(f"    Batch {batch_idx}: [{' | '.join(individual_values)}] → min={group_min[batch_idx]:.4f}")
+            
+            group_minimums.append(group_min)
+        
+        # Compute final aggregated loss using compiled method
+        final_loss = self._compiled_eval_loss(
+            positions,
+            self._resonance_groups_indices,
+            self._resonance_groups_weights,
+            self._resonance_groups_offsets,
+            self._resonance_groups_sizes,
+            self._temp,
+            self._alpha,
+            self._device,
+            KB,
+            log_probs
+        )
+        
+        # Add final aggregation info
+        if len(group_minimums) > 1:
+            log_lines.append(f"  Final aggregation (soft_min with α={self._alpha}):")
+            for batch_idx in range(batch_size):
+                group_mins_str = ", ".join([f"{group_min[batch_idx]:.4f}" for group_min in group_minimums])
+                log_lines.append(f"    Batch {batch_idx}: [{group_mins_str}] → final={final_loss[batch_idx]:.4f}")
+        else:
+            log_lines.append(f"  Final loss (single group):")
+            for batch_idx in range(batch_size):
+                log_lines.append(f"    Batch {batch_idx}: {final_loss[batch_idx]:.4f}")
+        
+        return "\n".join(log_lines)
