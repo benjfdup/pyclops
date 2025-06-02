@@ -619,7 +619,7 @@ class ChemicalLossHandler(LossHandler):
             *groups_info
         ])
 
-    def compute_individual_losses_log(self, positions: torch.Tensor) -> str:
+    def compute_individual_losses_log(self, positions: torch.Tensor) -> str: # we should change the name of this function
         """
         Compute and return a concise string showing individual loss values for logging.
         Reuses the core evaluation logic from _eval_loss but provides detailed breakdown.
@@ -757,3 +757,95 @@ class ChemicalLossHandler(LossHandler):
         log_lines.append(f"TOTAL SUM (across all batches): {total_loss:.4f}")
         
         return "\n".join(log_lines)
+    
+    def get_strategy_losses_dict(self, positions: torch.Tensor) -> Dict[str, torch.Tensor]:
+        '''
+        Compute the minimum loss values for each resonance group and return a dictionary with the following structure:
+        {
+            'Col0=method_base|residues=[1,2]': torch.Tensor, # shape: [batch_size]
+            'Col1=method_base|residues=[3,4]': torch.Tensor, # shape: [batch_size]
+            ...
+        }
+        
+        Args:
+            positions: Tensor of shape [batch_size, n_atoms, 3]
+            
+        Returns:
+            Dictionary mapping column names to group minimum tensors
+        '''
+        if self._resonance_groups_indices.shape[0] == 0:
+            return {}
+        
+        # Apply units conversion just like __call__ method does
+        positions_ang = positions * self.units_factor
+        
+        # Pre-compute log probabilities for all resonance groups (reusing _eval_loss logic)
+        log_probs = []
+        group_losses_detailed = []
+        resonance_keys_ordered = []  # Track the exact order we process groups
+        
+        for group_idx, (resonance_key, group) in enumerate(self._resonance_groups.items()):
+            resonance_keys_ordered.append(resonance_key)  # Store the key for this position
+            method_base, residue_pair = resonance_key
+            group_log_probs = []
+            group_individual_losses = []
+            
+            for loss_idx, loss in enumerate(group):
+                # Extract vertex positions (same as _eval_loss)
+                vertex_positions = positions_ang[:, loss._vertex_indices, :]
+                v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
+                
+                # Calculate distances (same as _eval_loss)
+                atom_pairs_1 = torch.stack([v0, v0, v0, v1, v1, v2], dim=1)
+                atom_pairs_2 = torch.stack([v1, v2, v3, v2, v3, v3], dim=1)
+                dists = torch.linalg.vector_norm(atom_pairs_1 - atom_pairs_2, dim=-1)
+                
+                # Evaluate KDE (same as _eval_loss)
+                logP = loss.kde_pdf.score_samples(dists)
+                energy = -KB * self._temp * logP
+                
+                # Apply weight and offset
+                scaled_energy = loss._weight * energy + loss._offset
+                
+                group_log_probs.append(logP)
+                group_individual_losses.append({
+                    'method': loss.method,
+                    'residues': sorted(residue_pair),
+                    'energy': scaled_energy,
+                    'weight': loss._weight,
+                    'offset': loss._offset
+                })
+            
+            # Pad group log_probs to match tensor structure
+            if len(group_log_probs) < self._resonance_groups_indices.shape[1]:
+                padding_needed = self._resonance_groups_indices.shape[1] - len(group_log_probs)
+                for _ in range(padding_needed):
+                    group_log_probs.append(torch.zeros_like(group_log_probs[0]))
+            
+            log_probs.append(torch.stack(group_log_probs))
+            group_losses_detailed.append(group_individual_losses)
+        
+        # Stack all log probabilities
+        log_probs = torch.stack(log_probs) if log_probs else torch.empty((0, 0, positions_ang.shape[0]), device=positions_ang.device)
+        
+        # Compute group minimums and create dictionary
+        result_dict = {}
+        for group_idx, group_losses in enumerate(group_losses_detailed):
+            method_base = list(self._resonance_groups.keys())[group_idx][0]
+            residue_pair = list(self._resonance_groups.keys())[group_idx][1]
+            
+            if len(group_losses) == 1:
+                # Single variant
+                loss_info = group_losses[0]
+                group_min = loss_info['energy']
+            else:
+                # Multiple resonant variants
+                energies = torch.stack([loss_info['energy'] for loss_info in group_losses], dim=1)
+                group_min = torch.min(energies, dim=1)[0]
+            
+            # Create column name in the same format as compute_individual_losses_log
+            col_name = f"Col{group_idx}={method_base}|residues={sorted(residue_pair)}"
+            result_dict[col_name] = group_min
+        
+        return result_dict
+        
