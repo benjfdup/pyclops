@@ -633,21 +633,26 @@ class ChemicalLossHandler(LossHandler):
         if self._resonance_groups_indices.shape[0] == 0:
             return "No losses computed - empty resonance groups"
         
-        batch_size = positions.shape[0]
+        # Apply units conversion just like __call__ method does
+        positions_ang = positions * self.units_factor
+        
+        batch_size = positions_ang.shape[0]
         log_lines = [f"Loss breakdown for {batch_size} batch(es):"]
         
         # Pre-compute log probabilities for all resonance groups (reusing _eval_loss logic)
         log_probs = []
         group_losses_detailed = []
+        resonance_keys_ordered = []  # Track the exact order we process groups
         
         for group_idx, (resonance_key, group) in enumerate(self._resonance_groups.items()):
+            resonance_keys_ordered.append(resonance_key)  # Store the key for this position
             method_base, residue_pair = resonance_key
             group_log_probs = []
             group_individual_losses = []
             
             for loss_idx, loss in enumerate(group):
                 # Extract vertex positions (same as _eval_loss)
-                vertex_positions = positions[:, loss._vertex_indices, :]
+                vertex_positions = positions_ang[:, loss._vertex_indices, :]
                 v0, v1, v2, v3 = vertex_positions[:, 0], vertex_positions[:, 1], vertex_positions[:, 2], vertex_positions[:, 3]
                 
                 # Calculate distances (same as _eval_loss)
@@ -681,7 +686,7 @@ class ChemicalLossHandler(LossHandler):
             group_losses_detailed.append(group_individual_losses)
         
         # Stack all log probabilities
-        log_probs = torch.stack(log_probs) if log_probs else torch.empty((0, 0, batch_size), device=positions.device)
+        log_probs = torch.stack(log_probs) if log_probs else torch.empty((0, 0, batch_size), device=positions_ang.device)
         
         # Compute group minimums and add to log
         group_minimums = []
@@ -712,7 +717,7 @@ class ChemicalLossHandler(LossHandler):
         
         # Compute final aggregated loss using compiled method
         final_loss = self._compiled_eval_loss(
-            positions,
+            positions_ang,
             self._resonance_groups_indices,
             self._resonance_groups_weights,
             self._resonance_groups_offsets,
@@ -730,12 +735,17 @@ class ChemicalLossHandler(LossHandler):
             
             # Add header showing what each column represents
             group_labels = []
-            for group_idx, (resonance_key, _) in enumerate(self._resonance_groups.items()):
+            #resonance_keys_list = list(self._resonance_groups.keys())  # Store the exact order
+            for group_idx, resonance_key in enumerate(resonance_keys_ordered):
                 method_base, residue_pair = resonance_key
                 group_labels.append(f"Col{group_idx}={method_base}|res={sorted(residue_pair)}")
             header_line = "    " + " | ".join(group_labels)
             log_lines.append(header_line)
             log_lines.append("    " + "-" * len(header_line.strip()))
+            
+            # Verify that our group_losses_detailed matches the same order
+            detailed_keys = [list(self._resonance_groups.keys())[i] for i in range(len(group_losses_detailed))]
+            assert detailed_keys == resonance_keys_ordered, f"Order mismatch: {detailed_keys} != {resonance_keys_ordered}"
             
             for batch_idx in range(batch_size):
                 group_mins_str = ", ".join([f"{group_min[batch_idx]:.4f}" for group_min in group_minimums])
@@ -744,6 +754,11 @@ class ChemicalLossHandler(LossHandler):
             log_lines.append(f"  Final loss (single group):")
             for batch_idx in range(batch_size):
                 log_lines.append(f"    Batch {batch_idx}: {final_loss[batch_idx]:.4f}")
+        
+        # Verify we processed the expected number of groups
+        assert len(group_minimums) == len(resonance_keys_ordered)
+        assert len(group_losses_detailed) == len(resonance_keys_ordered)
+        assert len(group_labels) == len(resonance_keys_ordered)
         
         # Add total sum for verification
         total_loss = torch.sum(final_loss).item()
