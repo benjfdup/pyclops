@@ -45,7 +45,13 @@ class ValidationPipeline():
                  coordinates: Union[torch.Tensor, np.ndarray],
                  ) -> float:
         """
-        Validate the coordinates.
+        Compute the distance between sample coordinates and the validation set.
+        
+        Args:
+            coordinates: Sample coordinates to compare against validation set
+            
+        Returns:
+            Distance metric (e.g., Wasserstein distance) between sample and validation energies
         """
         if self._validation_set is None:
             raise ValueError("Validation set not initialized. Call initialize_validation_set first.")
