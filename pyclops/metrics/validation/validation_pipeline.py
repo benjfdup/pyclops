@@ -20,7 +20,7 @@ class ValidationPipeline():
         if distance_metric in cls.valid_metrics:
             return distance_metric.lower()
         else:
-            raise ValueError(f"Invalid distance metric: {distance_metric}. Valid metrics are: {valid_metrics}")
+            raise ValueError(f"Invalid distance metric: {distance_metric}. Valid metrics are: {cls.valid_metrics}")
         
     def initialize_validation_set(self, 
                                   coordinates: Union[torch.Tensor, np.ndarray],
