@@ -5,11 +5,14 @@ from ..scoring.base_scorer import BaseScorer
 from scipy.stats import wasserstein_distance
 
 class ValidationPipeline():
+    """
+    This class is used to validate the performance of a model.
+    """
     valid_metrics = ["w1"] # only w1 for now
 
     def __init__(self, 
                  scorer: BaseScorer,
-                 distance_metric: str, # are not there different wasserstein distances?
+                 distance_metric: str,
                  ):
         self._scorer = scorer
         self._distance_metric = self._get_distance_metric(distance_metric)
