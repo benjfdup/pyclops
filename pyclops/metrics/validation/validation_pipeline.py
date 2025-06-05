@@ -20,8 +20,9 @@ class ValidationPipeline():
 
     @classmethod
     def _get_distance_metric(cls, distance_metric: str) -> str:
-        if distance_metric in cls.valid_metrics:
-            return distance_metric.lower()
+        d_met = distance_metric.lower()
+        if d_met in cls.valid_metrics:
+            return d_met
         else:
             raise ValueError(f"Invalid distance metric: {distance_metric}. Valid metrics are: {cls.valid_metrics}")
         
