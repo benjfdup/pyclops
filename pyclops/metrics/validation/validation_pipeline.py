@@ -18,6 +18,13 @@ class ValidationPipeline():
         self._distance_metric = self._get_distance_metric(distance_metric)
         self._validation_set = None
 
+    @property
+    def units_factor(self) -> float:
+        """
+        The factor by which the positions are scaled.
+        """
+        return self._scorer.units_factor
+
     @classmethod
     def _get_distance_metric(cls, distance_metric: str) -> str:
         d_met = distance_metric.lower()

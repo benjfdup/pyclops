@@ -22,6 +22,13 @@ class BaseScorer(ABC):
         self._pdb = md.load_pdb(pdb_path)
         self._units_factor = units_factor
 
+    @property
+    def units_factor(self) -> float:
+        """
+        The factor by which the positions are scaled.
+        """
+        return self._units_factor
+
     def _convert_to_angstroms(self, 
                               coordinates: Union[torch.Tensor, np.ndarray], # shape: [n_batch, n_atoms, 3]
                               ) -> Union[torch.Tensor, np.ndarray]:
