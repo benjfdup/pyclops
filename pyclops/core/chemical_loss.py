@@ -94,7 +94,6 @@ class ChemicalLoss:
     def resonance_key(self) -> Optional[Tuple[str, frozenset]]:
         return self._resonance_key
     
-    @torch.jit.script_method
     def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
         """
         Evaluate loss for a batch of atom positions (in Angstroms).
@@ -118,8 +117,8 @@ class ChemicalLoss:
         # Convert to energy using Boltzmann relation
         return -KB * self._temp * logP
     
-    @torch.jit.script_method
     def __call__(self, positions: torch.Tensor) -> torch.Tensor:
+        warnings.warn("ChemicalLoss instances should not be called directly. Use ChemicalLossHandler instead")
         """Compute total loss from atom positions."""
         loss = self._eval_loss(positions)
         return loss * self._weight + self._offset

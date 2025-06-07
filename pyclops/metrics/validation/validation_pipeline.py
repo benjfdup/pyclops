@@ -39,6 +39,9 @@ class ValidationPipeline():
             energies = energies.detach().cpu().numpy()
         elif not isinstance(energies, np.ndarray):
             energies = np.array(energies)
+        
+        # Ensure energies is 1D for wasserstein_distance
+        energies = energies.flatten()
             
         self._validation_set = energies # [n_batch, ]
 
@@ -62,6 +65,9 @@ class ValidationPipeline():
             sample_energies = sample_energies.detach().cpu().numpy()
         elif not isinstance(sample_energies, np.ndarray):
             sample_energies = np.array(sample_energies)
+        
+        # Ensure sample_energies is 1D for wasserstein_distance
+        sample_energies = sample_energies.flatten()
         
         if self._distance_metric == "w1":
             distance = wasserstein_distance(self._validation_set, sample_energies)

@@ -78,15 +78,15 @@ class OpenMMScorer(BaseScorer):
                 # Set positions and calculate energy
                 self.context.setPositions(coords_nm[i] * unit.nanometer)
                 state = self.context.getState(getEnergy=True)
-                energy_kj = state.getPotentialEnergy()  # Already in kJ/mol
+                energy_kj = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
                 energies.append(energy_kj)
             
-            result = np.array(energies).reshape(-1, 1)
+            result = np.array(energies)  # Shape: [n_batch]
         else:  # Single conformation [n_atoms, 3]
             self.context.setPositions(coords_nm * unit.nanometer)
             state = self.context.getState(getEnergy=True)
-            energy_kj = state.getPotentialEnergy()  # Already in kJ/mol
-            result = np.array([[energy_kj]])
+            energy_kj = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
+            result = np.array([energy_kj])  # Shape: [1]
         
         # Convert back to torch if input was torch
         if is_torch:

@@ -33,7 +33,7 @@ class BaseScorer(ABC):
     @abstractmethod
     def calculate_energy(self, 
                          coordinates: Union[torch.Tensor, np.ndarray], # shape: [n_batch, n_atoms, 3]
-                         ) -> Union[torch.Tensor, np.ndarray]: # shape: [n_batch, 1]
+                         ) -> Union[torch.Tensor, np.ndarray]: # shape: [n_batch]
         
         raise NotImplementedError("Subclass must implement this method")
 
