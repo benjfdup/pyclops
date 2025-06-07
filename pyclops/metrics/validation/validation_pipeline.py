@@ -49,7 +49,7 @@ class ValidationPipeline():
                  coordinates: Union[torch.Tensor, np.ndarray],
                  ) -> float:
         """
-        Compute the distance between sample coordinates and the validation set.
+        Compute the distance between sample energies and the validation set.
         
         Args:
             coordinates: Sample coordinates to compare against validation set

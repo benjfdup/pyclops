@@ -11,7 +11,7 @@ from ..base_scorer import BaseScorer
 class OpenMMScorer(BaseScorer):
     def __init__(self, 
                  pdb_path: str, 
-                 units_factor: float = 1.0,
+                 units_factor: float,
                  forcefield: Optional[str] = 'amber14-all.xml',
                  water_model: Optional[str] = 'amber14/tip3pfb.xml'):
         """
