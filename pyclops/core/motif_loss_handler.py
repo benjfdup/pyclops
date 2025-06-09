@@ -1,5 +1,6 @@
 import torch
 import warnings
+from typing import Optional
 
 from ..core.loss_handler import LossHandler
 from ..utils.utils import motif_loss
@@ -20,7 +21,7 @@ class MotifLossHandler(LossHandler):
     motif : torch.Tensor
         Reference structure to compare against, of shape [n_atoms, 3].
     motif_units_factor : float, optional
-        Conversion factor from motif units to angstroms. Default is 1.0.
+        Conversion factor from motif units to angstroms. Default is equal to units_factor.
     tolerance : float, optional
         No-penalty range around target positions in motif units. Default is 0.0.
     squared : bool, optional
@@ -33,10 +34,14 @@ class MotifLossHandler(LossHandler):
                  
                  # motif args
                  motif: torch.Tensor,
-                 motif_units_factor: float = 1.0,
+                 motif_units_factor: Optional[float] = None,
                  tolerance: float = 0.0,
                  squared: bool = False,
                  ):
+        # Set default motif_units_factor to match units_factor if not provided
+        if motif_units_factor is None:
+            motif_units_factor = units_factor
+            
         self._motif = motif * motif_units_factor
         self._motif_units_factor = motif_units_factor
         self._tolerance = tolerance * motif_units_factor  # Convert to angstroms
