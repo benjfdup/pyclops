@@ -15,6 +15,14 @@ class BaseRelaxer(ABC):
     @property
     def pdb_filepath(self) -> str:
         return self._pdb_filepath
+    
+    def _convert_to_angstroms(self, coordinates: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+        """Convert input coordinates to angstroms"""
+        return coordinates * self.units_factor
+    
+    def _convert_from_angstroms(self, coordinates: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+        """Convert coordinates from angstroms to original units"""
+        return coordinates / self.units_factor
 
     @abstractmethod
     def relax(self, structure: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:

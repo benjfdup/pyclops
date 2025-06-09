@@ -53,14 +53,6 @@ class OpenMMRelaxer(BaseRelaxer):
         # Create simulation context
         self.context = mm.Context(self.system, integrator)
 
-    def _convert_to_angstroms(self, coordinates: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
-        """Convert input coordinates to angstroms"""
-        return coordinates * self.units_factor
-    
-    def _convert_from_angstroms(self, coordinates: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
-        """Convert coordinates from angstroms to original units"""
-        return coordinates / self._units_factor
-
     def _prepare_coordinates(self, coordinates: Union[torch.Tensor, np.ndarray]) -> np.ndarray:
         """Convert coordinates to OpenMM format (nm) and handle batching"""
         # Convert to numpy if torch tensor
