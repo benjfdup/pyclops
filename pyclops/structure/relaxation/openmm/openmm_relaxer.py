@@ -11,7 +11,7 @@ class OpenMMRelaxer(BaseRelaxer):
     def __init__(self, 
                  units_factor: float, 
                  pdb_filepath: str,
-                 forcefield: Optional[str] = 'amber14-all.xml',
+                 forcefield: Optional[str] = 'ff19SB.xml',
                  water_model: Optional[str] = None,
                  max_iterations: int = 1000,
                  tolerance: float = 10.0):
