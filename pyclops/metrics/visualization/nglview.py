@@ -9,8 +9,9 @@ from MDAnalysis.coordinates.memory import MemoryReader
 from typing import Union, Optional
 from pathlib import Path
 
-def visualize_structure(
+def visualize_structure( # add units_factor
     coordinates: Union[torch.Tensor, np.ndarray],
+    units_factor: float,
     pdb_file: Union[str, Path],
     frame_idx: Optional[int] = None,
     style: str = "cartoon",
@@ -46,8 +47,7 @@ def visualize_structure(
     
     # Add coordinates as in-memory trajectory
     coords_A = coordinates.copy()
-    # If coordinates are in nm, convert to Angstrom (uncomment if needed)
-    # coords_A *= 10.0
+    coords_A *= units_factor / 10.0 # convert to nm (which is what nglview expects)
     
     u.load_new(coords_A, format=MemoryReader)
     

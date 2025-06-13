@@ -8,7 +8,7 @@ from ..utils.constants import KB, UNITS_FACTORS_DICT
 from ..utils.default_strategies import DEFAULT_STRATEGIES
 from ..utils.utils import soft_min
 from .chemical_loss import ChemicalLoss
-from ..torchkde.modules import KernelDensity
+
 
 class ChemicalLossHandler(LossHandler):
     """
