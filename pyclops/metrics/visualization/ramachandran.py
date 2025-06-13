@@ -9,8 +9,9 @@ from MDAnalysis.coordinates.memory import MemoryReader
 from typing import Union, Tuple, Optional
 from pathlib import Path
 
-def ramachandran_plot(
+def ramachandran_avg_plot(
     coordinates: Union[torch.Tensor, np.ndarray],
+    units_factor: float,
     pdb_file: Union[str, Path],
     title: str = "Ramachandran Plot",
     save_path: Optional[Union[str, Path]] = None,
@@ -36,8 +37,7 @@ def ramachandran_plot(
     
     # Add coordinates as in-memory trajectory
     coords_A = coordinates.copy()
-    # If coordinates are in nm, convert to Angstrom (uncomment if needed)
-    # coords_A *= 10.0
+    coords_A *= units_factor # convert to Angstroms (which is what MDAnalysis expects)
     
     u.load_new(coords_A, format=MemoryReader)
     
@@ -113,3 +113,6 @@ def ramachandran_plot(
         plt.show()
     
     return fig, ax
+
+def ramachandran_full_plot():
+    pass

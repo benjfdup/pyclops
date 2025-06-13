@@ -47,7 +47,7 @@ def visualize_structure( # add units_factor
     
     # Add coordinates as in-memory trajectory
     coords_A = coordinates.copy()
-    coords_A *= units_factor / 10.0 # convert to nm (which is what nglview expects)
+    coords_A *= units_factor # convert to Angstroms (which is what MDAnalysis expects)
     
     u.load_new(coords_A, format=MemoryReader)
     
