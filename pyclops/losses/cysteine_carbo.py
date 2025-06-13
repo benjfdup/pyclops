@@ -6,7 +6,7 @@ import mdtraj as md
 
 from ..core.chemical_loss import ChemicalLoss
 from ..utils.indexing import IndexesMethodPair
-from ..losses.standard_kde_locations import STANDARD_KDE_LOCATIONS
+from .standard_file_locations import STANDARD_KDE_LOCATIONS, STANDARD_LINKAGE_PDB_LOCATIONS
 
 
 class CysCarboxyl(ChemicalLoss, metaclass=ABCMeta):
@@ -42,6 +42,7 @@ class CysCarboxyl(ChemicalLoss, metaclass=ABCMeta):
         'C1',  # carbon behind the sulfur
     ]
     kde_file = STANDARD_KDE_LOCATIONS['cysteine-carbo']
+    linkage_pdb_file = STANDARD_LINKAGE_PDB_LOCATIONS['cysteine-carbo']
 
 class CysCTerm(CysCarboxyl):
     """

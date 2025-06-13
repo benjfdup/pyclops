@@ -1,5 +1,5 @@
 """
-Module for managing KDE file locations in the PyCLOPS package.
+Module for managing KDE and linkage PDB file locations in the PyCLOPS package.
 
 This module provides functions and constants to consistently find KDE files
 regardless of whether the package is being run from source or has been installed.
@@ -16,6 +16,15 @@ KDE_FILENAMES = {
     'disulfide': 'Disulfide_kde.pt',
     'lys-arg': 'Lys-Arg_kde.pt',
     'lys-tyr': 'Lys-Tyr_kde.pt',
+}
+
+LINKAGE_PDB_FILENAMES = {
+    'disulfide': 'disulfide_linkage.pdb',
+    'amide': 'amide_linkage.pdb',
+    'carboxylic-carbo': 'carboxylic-carbo_linkage.pdb',
+    'cysteine-carbo': 'cysteine-carbo_linkage.pdb',
+    'lys-arg': 'lys-arg_linkage.pdb',
+    'lys-tyr': 'lys-tyr_linkage.pdb',
 }
 
 def get_kde_path(kde_type: str) -> str:
@@ -76,6 +85,42 @@ class _KDEPathDict(dict):
     def __getitem__(self, key):
         # Get the path dynamically only when requested
         return get_kde_path(key)
+    
+def get_linkage_pdb_path(linkage_type: str) -> str:
+    if linkage_type not in LINKAGE_PDB_FILENAMES:
+        raise ValueError(f"Unknown linkage type: {linkage_type}. Available types: {list(LINKAGE_PDB_FILENAMES.keys())}")
+    
+    filename = LINKAGE_PDB_FILENAMES[linkage_type]
+    
+    # Approach 1: Try importlib.resources (Python 3.7+) - works for installed packages
+    try:
+        with importlib.resources.path('pyclops.losses.linkage_pdbs', filename) as path:
+            return str(path)
+    except (ImportError, ModuleNotFoundError):
+        # Package might be running from source
+        pass
+    
+    # Approach 2: Look for the 'pdbs' folder in the same directory as this module
+    module_dir = os.path.dirname(os.path.abspath(__file__))
+    pdbs_path = os.path.join(module_dir, 'linkage_pdbs', filename)
+    
+    if os.path.exists(pdbs_path):
+        return pdbs_path
+    
+    # If we can't find the file, raise an informative error
+    raise FileNotFoundError(
+        f"Could not find linkage PDB file '{filename}' for type '{linkage_type}'. "
+        f"Searched in: \n"
+        f"- Package resources (pyclops.losses.linkage_pdbs)\n"
+        f"- {pdbs_path}\n"
+        "Please ensure the data files are correctly installed with the package."
+    )
 
+class _LinkagePDBPathDict(dict):
+    def __getitem__(self, key):
+        # Get the path dynamically only when requested
+        return get_linkage_pdb_path(key)
+    
 # Public API: Dictionary-like object for accessing KDE file paths
 STANDARD_KDE_LOCATIONS = _KDEPathDict()
+STANDARD_LINKAGE_PDB_LOCATIONS = _LinkagePDBPathDict()

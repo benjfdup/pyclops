@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Tuple, ClassVar, Union
 import torch
 import mdtraj as md
@@ -31,15 +32,16 @@ class KDEManager:
         """Clear the KDE model cache to free memory"""
         self._kde_cache.clear()
 
-class ChemicalLoss:
+class ChemicalLoss(ABC):
     """
     ChemicalLoss optimized for torch.jit compilation.
-    This class is designed to be immutable after initialization.
+    Instances of this class should be treated as immutable after initialization.
     """
     
     # Class variables to be overridden by subclasses
     atom_idxs_keys: ClassVar[List[str]] = []
     kde_file: ClassVar[str] = ''
+    linkage_pdb_file: ClassVar[str] = ''
     
     def __init__(
         self,
@@ -57,6 +59,9 @@ class ChemicalLoss:
         
         if not self.kde_file:
             raise ValueError(f"Subclass {self.__class__.__name__} must specify kde_file attribute")
+        
+        if not self.linkage_pdb_file:
+            raise ValueError(f"Subclass {self.__class__.__name__} must specify linkage_pdb_file attribute")
         
         if not method:
             raise ValueError("Method string cannot be empty")
@@ -289,6 +294,7 @@ class ChemicalLoss:
         
         return valid_pairs
     
+    @abstractmethod
     @classmethod
     def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict) -> List[IndexesMethodPair]:
         """
@@ -296,3 +302,18 @@ class ChemicalLoss:
         Must be implemented by subclasses.
         """
         raise NotImplementedError(f"Subclass {cls.__name__} must implement get_indexes_and_methods") 
+    
+    def build_final_structure(self, initial_traj: md.Trajectory, positions: torch.Tensor) -> tuple[md.Trajectory, torch.Tensor]:
+        """
+        Builds a final structure, assuming this cyclization has already occured. 
+        This does so by replacing the relevant atoms in the initial structure with the atoms they correspond to in the 
+        linkage PDB file, and then adding the remaining atoms.
+        
+        This final structure will almost certainly need to be optimized
+        args:
+            positions: torch.Tensor, shape [n_atoms, 3]
+            initial_traj: md.Trajectory, shape [n_atoms, 3]
+        returns:
+            final_traj: md.Trajectory, shape [n_atoms, 3]
+            final_positions: torch.Tensor, shape [n_atoms, 3]
+        """        

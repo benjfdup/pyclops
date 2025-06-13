@@ -4,7 +4,7 @@ import mdtraj as md
 
 from ..core.chemical_loss import ChemicalLoss
 from ..utils.indexing import IndexesMethodPair
-from ..losses.standard_kde_locations import STANDARD_KDE_LOCATIONS
+from .standard_file_locations import STANDARD_KDE_LOCATIONS, STANDARD_LINKAGE_PDB_LOCATIONS
 
 class Disulfide(ChemicalLoss):
     """
@@ -39,6 +39,8 @@ class Disulfide(ChemicalLoss):
     ]
 
     kde_file = STANDARD_KDE_LOCATIONS['disulfide']
+    linkage_pdb_file = STANDARD_LINKAGE_PDB_LOCATIONS['disulfide']
+
 
     @classmethod
     def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict) -> List[IndexesMethodPair]:

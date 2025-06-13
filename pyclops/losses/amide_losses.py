@@ -6,7 +6,7 @@ import mdtraj as md
 from ..core.chemical_loss import ChemicalLoss
 from ..utils.indexing import IndexesMethodPair
 from ..utils.utils import inherit_docstring
-from ..losses.standard_kde_locations import STANDARD_KDE_LOCATIONS
+from .standard_file_locations import STANDARD_KDE_LOCATIONS, STANDARD_LINKAGE_PDB_LOCATIONS
 
 
 class Amide(ChemicalLoss, metaclass=ABCMeta):
@@ -29,6 +29,7 @@ class Amide(ChemicalLoss, metaclass=ABCMeta):
         'C2',  # Carbon 'behind' the nitrogen (in its same amino acid)
     ]
     kde_file = STANDARD_KDE_LOCATIONS['amide'] # Statistical potential for amide bond geometry
+    linkage_pdb_file = STANDARD_LINKAGE_PDB_LOCATIONS['amide'] # PDB file for the linkage
 
 
 class AmideHead2Tail(Amide):
