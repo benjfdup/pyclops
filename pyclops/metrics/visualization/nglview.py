@@ -17,7 +17,7 @@ def visualize_structure( # add units_factor
     style: str = "cartoon",
     color_scheme: str = "residueindex",
     background_color: str = "white",
-    show_atoms: bool = False,
+    show_atoms: bool = True,
     atom_scale: float = 0.5,
     atom_opacity: float = 0.6
 ) -> nv.NGLWidget:
