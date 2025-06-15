@@ -362,6 +362,25 @@ class ChemicalLoss(ABC):
         max_idx = max(atom_indices)
         if max_idx >= len(initial_structure.atoms):
             raise ValueError(f"Atom index {max_idx} exceeds structure size ({len(initial_structure.atoms)} atoms)")
+        
+    @staticmethod
+    def _remove_hydrogens(initial_structure: pmd.Structure, atom_idx: tuple[int]) -> pmd.Structure:
+        """
+        Removes hydrogens from the relevant atoms of the structure.
+        """
+        # 1. Validate that the input atom is not a hydrogen
+        if initial_structure.atoms[atom_idx].element_symbol == 'H':
+            raise ValueError("Cannot remove hydrogens from hydrogen atoms")
+        
+        # 2. Remove all hydrogen atoms bonded to the input atom
+        for atom in initial_structure.atoms[atom_idx].bond_partners:
+            if atom.element_symbol == 'H':
+                initial_structure.atoms.pop(atom.idx)
+        
+        # 3. Rebuild the structure to update indices after atom removal
+        initial_structure.remake()
+
+        return initial_structure
     
     @final 
     def build_final_structure(self,
