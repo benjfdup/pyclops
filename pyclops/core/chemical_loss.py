@@ -5,6 +5,8 @@ import mdtraj as md
 import parmed as pmd
 import warnings
 import itertools
+import tempfile
+import os
 
 from ..torchkde import KernelDensity
 from ..utils.indexing import IndexesMethodPair
@@ -409,17 +411,12 @@ class ChemicalLoss(ABC):
         if frame >= traj.n_frames:
             raise ValueError(f"Frame {frame} exceeds trajectory length ({traj.n_frames} frames)")
             
-        # Save frame to temporary PDB and load with ParmED
-        # This preserves topology information better than direct conversion
-        temp_pdb = "temp_structure.pdb"
-        try:
+        # Use temporary directory for safe file operations
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_pdb = os.path.join(temp_dir, "temp_structure.pdb")
             traj[frame].save_pdb(temp_pdb)
             structure = pmd.load_file(temp_pdb)
             return structure
-        finally:
-            import os
-            if os.path.exists(temp_pdb):
-                os.remove(temp_pdb)
     
     @staticmethod  
     def trajectory_from_structure(structure: pmd.Structure) -> md.Trajectory:
@@ -432,13 +429,9 @@ class ChemicalLoss(ABC):
         Returns:
             MDTraj trajectory (single frame)
         """
-        # Save structure to temporary PDB and load with MDTraj
-        temp_pdb = "temp_trajectory.pdb"
-        try:
+        # Use temporary directory for safe file operations
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_pdb = os.path.join(temp_dir, "temp_trajectory.pdb")
             structure.save(temp_pdb)
             traj = md.load(temp_pdb)
             return traj
-        finally:
-            import os
-            if os.path.exists(temp_pdb):
-                os.remove(temp_pdb)
