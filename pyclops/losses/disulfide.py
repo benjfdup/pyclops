@@ -146,22 +146,7 @@ class Disulfide(ChemicalLoss):
             raise ValueError(f"Expected cysteine residues, got {s1_atom.residue.name} and {s2_atom.residue.name}")
         
         # Find and remove hydrogen atoms bonded to the sulfur atoms
-        hydrogens_to_remove = []
-        
-        for atom in s1_atom.bond_partners:
-            if atom.element_symbol == 'H':
-                hydrogens_to_remove.append(atom)
-                
-        for atom in s2_atom.bond_partners:
-            if atom.element_symbol == 'H':
-                hydrogens_to_remove.append(atom)
-        
-        # Remove hydrogen atoms (in reverse order to maintain indices)
-        for h_atom in sorted(hydrogens_to_remove, key=lambda x: x.idx, reverse=True):
-            final_structure.atoms.pop(h_atom.idx)
-        
-        # Rebuild the structure to update indices after atom removal
-        final_structure.remake()
+        final_structure = self._remove_hydrogens_from_atoms(final_structure, [s1_idx, s2_idx])
         
         # Find the sulfur atoms again after remaking (indices may have changed)
         s1_new = None

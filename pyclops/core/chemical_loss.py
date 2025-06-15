@@ -367,6 +367,8 @@ class ChemicalLoss(ABC):
     def _remove_hydrogens_from_atoms(initial_structure: pmd.Structure, atom_idxs: List[int]) -> pmd.Structure:
         """
         Removes hydrogens from the relevant atoms of the structure.
+
+        Then remake the structure to update indices after atom removal.
         """
         # 1. Remove all hydrogen atoms bonded to the input atoms
         for atom_idx in atom_idxs:
