@@ -1,6 +1,8 @@
 from typing import Dict, List
 
 import mdtraj as md
+import parmed as pmd
+import torch
 
 from ..core.chemical_loss import ChemicalLoss
 from ..utils.indexing import IndexesMethodPair
@@ -43,7 +45,9 @@ class Disulfide(ChemicalLoss):
 
 
     @classmethod
-    def get_indexes_and_methods(cls, traj: md.Trajectory, atom_indexes_dict: Dict) -> List[IndexesMethodPair]:
+    def get_indexes_and_methods(cls, 
+                                traj: md.Trajectory, 
+                                atom_indexes_dict: Dict) -> List[IndexesMethodPair]:
         """
         Find all valid cysteine-cysteine pairings for disulfide bond formation.
         
@@ -99,3 +103,90 @@ class Disulfide(ChemicalLoss):
             method_name="Disulfide",
             special_selection=disulfide_pair_selection
         )
+    
+    def _build_final_structure(self, 
+                              initial_structure: pmd.Structure) -> pmd.Structure:
+        """
+        Builds a final structure with the disulfide bond formed.
+        
+        This method:
+        1. Identifies the sulfur atoms involved in the disulfide bond
+        2. Finds and removes hydrogen atoms attached to those sulfurs
+        3. Creates a disulfide bond between the sulfur atoms
+        4. Updates the topology to reflect the new connectivity
+        
+        Args:
+            initial_structure: ParmED Structure object representing the initial state
+            
+        Returns:
+            ParmED Structure object with the disulfide bond formed
+        """
+        # STEPS:
+        # 1. Remove hydrogens from the sulfur atoms of the relevant cysteines 
+        # of the initial structure (we can get this info from self.atom_idxs)
+        # 2. Form a disulfide bond between the sulfur atoms
+        # 3. Return the final structure
+        
+        # Create a copy to avoid modifying the original
+        final_structure = initial_structure.copy()
+        
+        # Get the sulfur atom indices from our atom mapping
+        s1_idx = self._atom_idxs['S1']
+        s2_idx = self._atom_idxs['S2']
+        
+        # Get the actual atoms
+        s1_atom = final_structure.atoms[s1_idx]
+        s2_atom = final_structure.atoms[s2_idx]
+        
+        # Verify these are actually sulfur atoms in cysteine residues
+        if s1_atom.element_symbol != 'S' or s2_atom.element_symbol != 'S':
+            raise ValueError(f"Expected sulfur atoms, got {s1_atom.element_symbol} and {s2_atom.element_symbol}")
+        
+        if s1_atom.residue.name != 'CYS' or s2_atom.residue.name != 'CYS':
+            raise ValueError(f"Expected cysteine residues, got {s1_atom.residue.name} and {s2_atom.residue.name}")
+        
+        # Find and remove hydrogen atoms bonded to the sulfur atoms
+        hydrogens_to_remove = []
+        
+        for atom in s1_atom.bond_partners:
+            if atom.element_symbol == 'H':
+                hydrogens_to_remove.append(atom)
+                
+        for atom in s2_atom.bond_partners:
+            if atom.element_symbol == 'H':
+                hydrogens_to_remove.append(atom)
+        
+        # Remove hydrogen atoms (in reverse order to maintain indices)
+        for h_atom in sorted(hydrogens_to_remove, key=lambda x: x.idx, reverse=True):
+            final_structure.atoms.pop(h_atom.idx)
+        
+        # Rebuild the structure to update indices after atom removal
+        final_structure.remake()
+        
+        # Find the sulfur atoms again after remaking (indices may have changed)
+        s1_new = None
+        s2_new = None
+        
+        for atom in final_structure.atoms:
+            if (atom.element_symbol == 'S' and 
+                atom.residue.name == 'CYS' and 
+                atom.name == 'SG'):
+                if atom.residue.number == s1_atom.residue.number:
+                    s1_new = atom
+                elif atom.residue.number == s2_atom.residue.number:
+                    s2_new = atom
+        
+        if s1_new is None or s2_new is None:
+            raise RuntimeError("Could not locate sulfur atoms after hydrogen removal")
+        
+        # Create the disulfide bond
+        # Bond type 1 is typically a single bond in AMBER force fields
+        disulfide_bond = pmd.Bond(s1_new, s2_new)
+        final_structure.bonds.append(disulfide_bond)
+        
+        # Update residue names to reflect disulfide bonding (optional, force field dependent)
+        # Some force fields use CYX for disulfide-bonded cysteine
+        s1_new.residue.name = 'CYX'
+        s2_new.residue.name = 'CYX'
+        
+        return final_structure

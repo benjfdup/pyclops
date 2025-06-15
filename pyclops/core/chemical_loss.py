@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple, ClassVar, Union
+from typing import Dict, List, Optional, Tuple, ClassVar, Union, final
 import torch
 import mdtraj as md
+import parmed as pmd
 import warnings
 import itertools
 
@@ -300,20 +301,144 @@ class ChemicalLoss(ABC):
         """
         Identify valid atom configurations for this loss in a structure.
         Must be implemented by subclasses.
+        
+        Args:
+            traj: MDTraj trajectory for analysis and atom identification
+            atom_indexes_dict: Dictionary mapping (residue_idx, atom_name) to global atom indices
+            
+        Returns:
+            List of IndexesMethodPair objects.
         """
         raise NotImplementedError(f"Subclass {cls.__name__} must implement get_indexes_and_methods") 
     
-    def build_final_structure(self, initial_traj: md.Trajectory, positions: torch.Tensor) -> tuple[md.Trajectory, torch.Tensor]:
+    @abstractmethod
+    def _build_final_structure(self,
+                              initial_structure: pmd.Structure) -> pmd.Structure:
         """
-        Builds a final structure, assuming this cyclization has already occured. 
-        This does so by replacing the relevant atoms in the initial structure with the atoms they correspond to in the 
-        linkage PDB file, and then adding the remaining atoms.
+        Builds a final structure, assuming this cyclization has already occurred. 
         
-        This final structure will almost certainly need to be optimized
-        args:
-            positions: torch.Tensor, shape [n_atoms, 3]
-            initial_traj: md.Trajectory, shape [n_atoms, 3]
-        returns:
-            final_traj: md.Trajectory, shape [n_atoms, 3]
-            final_positions: torch.Tensor, shape [n_atoms, 3]
-        """        
+        This method should:
+        1. Create the cyclization bond(s) using the linkage information
+        2. Remove/modify atoms as needed for the specific chemistry
+        3. Update the topology to reflect the new connectivity
+        4. Preserve coordinates where possible
+        
+        The returned structure will likely need geometry optimization but should have
+        correct connectivity and topology.
+        
+        Args:
+            initial_structure: ParmED Structure object representing the initial state
+            
+        Returns:
+            ParmED Structure object with the cyclization applied
+            
+        Note:
+            This structure will almost certainly need to be optimized, and this will not be handled here.
+        """
+        raise NotImplementedError(f"Subclass {self.__class__.__name__} must implement _build_final_structure")
+
+    @final
+    def _validate_initial_structure(self, initial_structure: pmd.Structure) -> None:
+        """
+        Validates the initial ParmED structure.
+        
+        Args:
+            initial_structure: ParmED Structure to validate
+            
+        Raises:
+            ValueError: If the structure is invalid for cyclization
+            TypeError: If the input is not a ParmED Structure
+        """
+        if not isinstance(initial_structure, pmd.Structure):
+            raise TypeError("Initial structure must be a ParmED Structure object")
+        
+        if len(initial_structure.atoms) == 0:
+            raise ValueError("Initial structure contains no atoms")
+            
+        # Check that required atoms exist
+        atom_indices = [self._atom_idxs[key] for key in self.atom_idxs_keys]
+        max_idx = max(atom_indices)
+        if max_idx >= len(initial_structure.atoms):
+            raise ValueError(f"Atom index {max_idx} exceeds structure size ({len(initial_structure.atoms)} atoms)")
+    
+    @final 
+    def build_final_structure(self,
+                              initial_structure: pmd.Structure) -> pmd.Structure:
+        """
+        Builds a final structure, assuming this cyclization has already occurred.
+        
+        This is the public interface that adds validation and error handling around
+        the abstract _build_final_structure method.
+        
+        Args:
+            initial_structure: ParmED Structure object representing the initial state
+            
+        Returns:
+            ParmED Structure object with the cyclization applied and validated
+            
+        Raises:
+            ValueError: If the initial structure is invalid
+            TypeError: If the input is not a ParmED Structure
+        """
+        self._validate_initial_structure(initial_structure)
+        
+        try:
+            final_structure = self._build_final_structure(initial_structure)
+            
+            # Validate the output
+            if not isinstance(final_structure, pmd.Structure):
+                raise TypeError("_build_final_structure must return a ParmED Structure object")
+                
+            return final_structure
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to build final structure for {self.__class__.__name__}: {str(e)}") from e
+    
+    @staticmethod
+    def structure_from_trajectory(traj: md.Trajectory, frame: int = 0) -> pmd.Structure:
+        """
+        Utility method to convert an MDTraj trajectory to a ParmED Structure.
+        
+        Args:
+            traj: MDTraj trajectory
+            frame: Frame index to extract (default: 0)
+            
+        Returns:
+            ParmED Structure object
+        """
+        if frame >= traj.n_frames:
+            raise ValueError(f"Frame {frame} exceeds trajectory length ({traj.n_frames} frames)")
+            
+        # Save frame to temporary PDB and load with ParmED
+        # This preserves topology information better than direct conversion
+        temp_pdb = "temp_structure.pdb"
+        try:
+            traj[frame].save_pdb(temp_pdb)
+            structure = pmd.load_file(temp_pdb)
+            return structure
+        finally:
+            import os
+            if os.path.exists(temp_pdb):
+                os.remove(temp_pdb)
+    
+    @staticmethod  
+    def trajectory_from_structure(structure: pmd.Structure) -> md.Trajectory:
+        """
+        Utility method to convert a ParmED Structure to an MDTraj trajectory.
+        
+        Args:
+            structure: ParmED Structure object
+            
+        Returns:
+            MDTraj trajectory (single frame)
+        """
+        # Save structure to temporary PDB and load with MDTraj
+        temp_pdb = "temp_trajectory.pdb"
+        try:
+            structure.save(temp_pdb)
+            traj = md.load(temp_pdb)
+            return traj
+        finally:
+            import os
+            if os.path.exists(temp_pdb):
+                os.remove(temp_pdb)
