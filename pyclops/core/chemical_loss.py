@@ -364,20 +364,41 @@ class ChemicalLoss(ABC):
             raise ValueError(f"Atom index {max_idx} exceeds structure size ({len(initial_structure.atoms)} atoms)")
         
     @staticmethod
-    def _remove_hydrogens_from_atoms(initial_structure: pmd.Structure, atom_idxs: List[int]) -> pmd.Structure:
+    def _remove_hydrogens_from_atoms(initial_structure: pmd.Structure, 
+                                     atom_idxs: List[int],
+                                     remake: bool = True) -> pmd.Structure:
         """
         Removes hydrogens from the relevant atoms of the structure.
 
         Then remake the structure to update indices after atom removal.
         """
-        # 1. Remove all hydrogen atoms bonded to the input atoms
-        for atom_idx in atom_idxs:
-            for atom in initial_structure.atoms[atom_idx].bond_partners:
-                if atom.element_symbol == 'H':
-                    initial_structure.atoms.pop(atom.idx)
+        # Collect hydrogen atoms to remove and their associated bonds
+        hydrogens_to_remove = []
+        bonds_to_remove = []
         
-        # 2. Rebuild the structure to update indices after atom removal
-        initial_structure.remake()
+        # 1. Find all hydrogen atoms bonded to the input atoms
+        for atom_idx in atom_idxs:
+            for bonded_atom in initial_structure.atoms[atom_idx].bond_partners:
+                if bonded_atom.element_symbol == 'H':
+                    hydrogens_to_remove.append(bonded_atom)
+                    
+                    # Find all bonds involving this hydrogen atom
+                    for bond in initial_structure.bonds:
+                        if bonded_atom in (bond.atom1, bond.atom2):
+                            bonds_to_remove.append(bond)
+        
+        # 2. Remove bonds first (to avoid reference issues)
+        for bond in bonds_to_remove:
+            if bond in initial_structure.bonds:
+                initial_structure.bonds.remove(bond)
+        
+        # 3. Remove hydrogen atoms (in reverse order to maintain indices)
+        for h_atom in sorted(hydrogens_to_remove, key=lambda x: x.idx, reverse=True):
+            initial_structure.atoms.pop(h_atom.idx)
+        
+        # 4. Rebuild the structure to update indices after atom removal
+        if remake:
+            initial_structure.remake()
 
         return initial_structure
     
@@ -453,3 +474,10 @@ class ChemicalLoss(ABC):
             structure.save(temp_pdb)
             traj = md.load(temp_pdb)
             return traj
+        
+    @staticmethod
+    def structure_to_pdb(structure: pmd.Structure, filename: str) -> None:
+        """
+        Utility method to convert a ParmED Structure to a PDB file.
+        """
+        structure.save(filename, format='pdb')
