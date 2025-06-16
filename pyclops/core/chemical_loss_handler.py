@@ -848,4 +848,9 @@ class ChemicalLossHandler(LossHandler):
             result_dict[col_name] = group_min
         
         return result_dict
+    
+    def build_final_structure(self):
+        """
+        Build the final structure based on the smallest loss accross all losses.
+        """
         
