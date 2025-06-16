@@ -1,14 +1,12 @@
-from typing import Dict, List, Optional
+from typing import Dict, List
 from abc import ABCMeta
 
 import mdtraj as md
-import parmed as pmd
 
 from ..core.chemical_loss import ChemicalLoss
 from ..utils.indexing import IndexesMethodPair
 from ..utils.utils import inherit_docstring
 from .standard_file_locations import STANDARD_KDE_LOCATIONS, STANDARD_LINKAGE_PDB_LOCATIONS
-from ..utils.constants import AMBER_CAPS
 
 
 class Amide(ChemicalLoss, metaclass=ABCMeta):
