@@ -481,3 +481,114 @@ class ChemicalLoss(ABC):
         Utility method to convert a ParmED Structure to a PDB file.
         """
         structure.save(filename, format='pdb')
+    
+    @staticmethod
+    def _remove_amber_caps(initial_structure: pmd.Structure, 
+                           remake: bool = True,
+                           verbose: bool = False) -> pmd.Structure:
+        """
+        Removes Amber cap atoms if they are present (ACE, NME, NHE)
+        """
+        # Create a copy to avoid modifying the original
+        structure = initial_structure.copy()
+        
+        # If no residues, return the structure as-is
+        if not structure.residues:
+            if verbose:
+                print("No residues found in the structure")
+            return structure
+        
+        # Get first and last residues
+        first_residue = structure.residues[0]
+        last_residue = structure.residues[-1]
+        
+        # Track atoms to remove
+        atoms_to_remove = []
+        
+        # Check if first residue is an amber cap
+        if first_residue.name in AMBER_CAPS:
+            atoms_to_remove.extend(list(first_residue.atoms))
+        
+        # Check if last residue is an amber cap (and not the same as first)
+        if last_residue != first_residue and last_residue.name in AMBER_CAPS:
+            atoms_to_remove.extend(list(last_residue.atoms))
+        
+        # Remove atoms in reverse order to maintain indices
+        for atom in sorted(atoms_to_remove, key=lambda x: x.idx, reverse=True):
+            structure.atoms.pop(atom.idx)
+        
+        # Rebuild the structure to update indices after atom removal
+        if remake:
+            structure.remake()
+        
+        return structure
+    
+    @staticmethod
+    def _remove_amber_head(initial_structure: pmd.Structure, 
+                           remake: bool = True, 
+                           verbose: bool = False,
+                           ) -> pmd.Structure:
+        """
+        Removes any Amber caps found in the first residue
+        """
+        # Create a copy to avoid modifying the original
+        structure = initial_structure.copy()
+        
+        # If no residues, return the structure as-is
+        if not structure.residues:
+            if verbose:
+                print("No residues found in the structure")
+            return structure
+        
+        # Get the first residue
+        first_residue = structure.residues[0]
+        
+        # Check if first residue is an amber cap
+        if first_residue.name in AMBER_CAPS:
+            # Get all atoms in the first residue
+            atoms_to_remove = list(first_residue.atoms)
+            
+            # Remove atoms in reverse order to maintain indices
+            for atom in sorted(atoms_to_remove, key=lambda x: x.idx, reverse=True):
+                structure.atoms.pop(atom.idx)
+            
+            # Rebuild the structure to update indices after atom removal
+            if remake:
+                structure.remake()
+        
+        return structure
+    
+    @staticmethod
+    def _remove_amber_tail(initial_structure: pmd.Structure, 
+                           remake: bool = True, 
+                           verbose: bool = False,
+                           ) -> pmd.Structure:
+        """
+        Removes any Amber caps found in the last residue
+        """
+        # Create a copy to avoid modifying the original
+        structure = initial_structure.copy()
+        
+        # If no residues, return the structure as-is
+        if not structure.residues:
+            if verbose:
+                print("No residues found in the structure")
+            return structure
+        
+        # Get the last residue
+        last_residue = structure.residues[-1]
+        
+        # Check if last residue is an amber cap
+        if last_residue.name in AMBER_CAPS:
+            # Get all atoms in the last residue
+            atoms_to_remove = list(last_residue.atoms)
+            
+            # Remove atoms in reverse order to maintain indices
+            for atom in sorted(atoms_to_remove, key=lambda x: x.idx, reverse=True):
+                structure.atoms.pop(atom.idx)
+            
+            # Rebuild the structure to update indices after atom removal
+            if remake:
+                structure.remake()
+        
+        return structure
