@@ -1,8 +1,8 @@
 # fundamentally, we want a class which will take in a chemical loss and a structure, of some kind, 
-# and return a version of that structure with the chemical loss applied, which we can then minimize
-# so we can
+# and return a version of that structure with the chemical loss applied, which we can then minimize.
 
-
+# this class would probably have a way to index what it needs to do for any given chemical loss, and
+# then applies the appropriate steps to the structure, if that makes sense.
 
 # notepad:
 @abstractmethod
