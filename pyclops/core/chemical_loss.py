@@ -482,6 +482,7 @@ class ChemicalLoss(ABC):
         """
         structure.save(filename, format='pdb')
     
+    # these are sloppy as we reuse alot of code. Let's clean this up later.
     @staticmethod
     def _remove_amber_caps(initial_structure: pmd.Structure, 
                            remake: bool = True,
