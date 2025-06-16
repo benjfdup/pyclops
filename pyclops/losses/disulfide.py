@@ -1,7 +1,6 @@
 from typing import Dict, List
 
 import mdtraj as md
-import parmed as pmd
 
 from ..core.chemical_loss import ChemicalLoss
 from ..utils.indexing import IndexesMethodPair
