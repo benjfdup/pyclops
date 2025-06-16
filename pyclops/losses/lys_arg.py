@@ -5,7 +5,7 @@ import mdtraj as md
 from ..core.chemical_loss import ChemicalLoss
 from ..utils.indexing import IndexesMethodPair
 from ..utils.utils import inherit_docstring
-from .standard_file_locations import STANDARD_KDE_LOCATIONS, STANDARD_LINKAGE_PDB_LOCATIONS
+from .standard_file_locations import STANDARD_KDE_LOCATIONS
 
 
 class LysArg(ChemicalLoss):
@@ -32,7 +32,6 @@ class LysArg(ChemicalLoss):
     ]
     
     kde_file = STANDARD_KDE_LOCATIONS['lys-arg']
-    linkage_pdb_file = STANDARD_LINKAGE_PDB_LOCATIONS['lys-arg']
     
     @classmethod
     @inherit_docstring(ChemicalLoss.get_indexes_and_methods)

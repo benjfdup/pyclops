@@ -44,7 +44,6 @@ class ChemicalLoss(ABC):
     # Class variables to be overridden by subclasses
     atom_idxs_keys: ClassVar[List[str]] = []
     kde_file: ClassVar[str] = ''
-    linkage_pdb_file: ClassVar[str] = ''
     
     def __init__(
         self,
@@ -62,9 +61,6 @@ class ChemicalLoss(ABC):
         
         if not self.kde_file:
             raise ValueError(f"Subclass {self.__class__.__name__} must specify kde_file attribute")
-        
-        if not self.linkage_pdb_file:
-            raise ValueError(f"Subclass {self.__class__.__name__} must specify linkage_pdb_file attribute")
         
         if not method:
             raise ValueError("Method string cannot be empty")

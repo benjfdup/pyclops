@@ -1,3 +1,10 @@
+# fundamentally, we want a class which will take in a chemical loss and a structure, of some kind, 
+# and return a version of that structure with the chemical loss applied, which we can then minimize
+# so we can
+
+
+
+# notepad:
 @abstractmethod
     def _build_final_structure(self,
                               initial_structure: pmd.Structure) -> pmd.Structure:
