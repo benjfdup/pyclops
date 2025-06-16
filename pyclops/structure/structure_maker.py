@@ -44,34 +44,31 @@ class StructureMaker():
                 print("No residues found in the structure")
             return structure
             
-        # Track atoms to remove
-        atoms_to_remove = []
+        # Build Amber mask based on cap type and location
+        mask_parts = []
         
-        # Get first and last residues
-        first_residue = structure.residues[0]
-        last_residue = structure.residues[-1]
-        
-        # Handle head cap removal
         if remove_cap_str in ['head', 'both']:
+            first_residue = structure.residues[0]
             if first_residue.name in AMBER_CAPS:
-                atoms_to_remove.extend(list(first_residue.atoms))
+                mask_parts.append(f":{first_residue.idx + 1}")
                 if verbose:
                     print(f"Removing head cap: {first_residue.name}")
         
-        # Handle tail cap removal
         if remove_cap_str in ['tail', 'both']:
-            if last_residue != first_residue and last_residue.name in AMBER_CAPS:
-                atoms_to_remove.extend(list(last_residue.atoms))
+            last_residue = structure.residues[-1]
+            if last_residue != structure.residues[0] and last_residue.name in AMBER_CAPS:
+                mask_parts.append(f":{last_residue.idx + 1}")
                 if verbose:
                     print(f"Removing tail cap: {last_residue.name}")
         
-        # Remove atoms in reverse order to maintain indices
-        for atom in sorted(atoms_to_remove, key=lambda x: x.idx, reverse=True):
-            structure.atoms.pop(atom.idx)
-        
-        # Rebuild the structure to update indices after atom removal
-        if remake:
-            structure.remake()
+        if mask_parts:
+            # Combine mask parts with OR operator
+            mask = " | ".join(mask_parts)
+            structure.strip(mask)
+            
+            # Rebuild the structure if requested
+            if remake:
+                structure.remake()
         
         return structure
     
