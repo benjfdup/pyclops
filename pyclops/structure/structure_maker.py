@@ -3,9 +3,89 @@
 
 # this class would probably have a way to index what it needs to do for any given chemical loss, and
 # then applies the appropriate steps to the structure, if that makes sense.
+import parmed as pmd
 
-# notepad:
-@abstractmethod
+from ..core.chemical_loss import ChemicalLoss
+from ..losses.standard_file_locations import STANDARD_LINKAGE_PDB_LOCATIONS
+from ..utils.constants import AMBER_CAPS
+
+class StructureMaker():
+    @staticmethod
+    def _remove_amber_caps(initial_structure: pmd.Structure,
+                           remove_cap_str: str, 
+                           remake: bool = True, 
+                           verbose: bool = False,
+                           ) -> pmd.Structure:
+        """
+        Removes Amber cap atoms (ACE, NME, NHE) from the structure based on the specified location.
+        
+        Args:
+            initial_structure: ParmED Structure object to modify
+            remove_cap_str: String indicating which caps to remove ('head', 'tail', or 'both')
+            remake: Whether to rebuild the structure after modifications
+            verbose: Whether to print debug information
+            
+        Returns:
+            Modified ParmED Structure object
+            
+        Raises:
+            ValueError: If remove_cap_str is not one of the valid options
+        """
+        valid_r_c_s_vals = ['head', 'tail', 'both']
+        if remove_cap_str not in valid_r_c_s_vals:
+            raise ValueError(f'remove_cap_str must be in {valid_r_c_s_vals}. Got {remove_cap_str}')
+            
+        # Create a copy to avoid modifying the original
+        structure = initial_structure.copy()
+        
+        # If no residues, return the structure as-is
+        if not structure.residues:
+            if verbose:
+                print("No residues found in the structure")
+            return structure
+            
+        # Track atoms to remove
+        atoms_to_remove = []
+        
+        # Get first and last residues
+        first_residue = structure.residues[0]
+        last_residue = structure.residues[-1]
+        
+        # Handle head cap removal
+        if remove_cap_str in ['head', 'both']:
+            if first_residue.name in AMBER_CAPS:
+                atoms_to_remove.extend(list(first_residue.atoms))
+                if verbose:
+                    print(f"Removing head cap: {first_residue.name}")
+        
+        # Handle tail cap removal
+        if remove_cap_str in ['tail', 'both']:
+            if last_residue != first_residue and last_residue.name in AMBER_CAPS:
+                atoms_to_remove.extend(list(last_residue.atoms))
+                if verbose:
+                    print(f"Removing tail cap: {last_residue.name}")
+        
+        # Remove atoms in reverse order to maintain indices
+        for atom in sorted(atoms_to_remove, key=lambda x: x.idx, reverse=True):
+            structure.atoms.pop(atom.idx)
+        
+        # Rebuild the structure to update indices after atom removal
+        if remake:
+            structure.remake()
+        
+        return structure
+    
+    def make_topology(init_struct: pmd.Structure, chem_loss: ChemicalLoss):
+        """
+        Given an input structure, and the corresponding chemical loss, outputs a new structure with
+        bond topology that corresponds to that chemical loss being applied, as specified in its linkage pdb.
+
+        Does not yet regard particular coordinates.
+        """
+        pass
+
+'''
+    @abstractmethod
     def _build_final_structure(self,
                               initial_structure: pmd.Structure) -> pmd.Structure:
         """
@@ -428,3 +508,4 @@ def _bfs(self,
         
         return final_structure
 
+'''
