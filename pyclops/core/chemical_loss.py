@@ -2,11 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Tuple, ClassVar, Union, final
 import torch
 import mdtraj as md
-import parmed as pmd
 import warnings
 import itertools
-import tempfile
-import os
 
 from ..torchkde import KernelDensity
 from ..utils.indexing import IndexesMethodPair
