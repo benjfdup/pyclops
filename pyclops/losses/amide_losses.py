@@ -109,6 +109,7 @@ class Amide(ChemicalLoss, metaclass=ABCMeta):
         
         return structure
     
+    @staticmethod
     def _remove_amber_tail(initial_structure: pmd.Structure, 
                            remake: bool = True, 
                            verbose: bool = False,
