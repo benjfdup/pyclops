@@ -144,16 +144,10 @@ class AmideHead2Tail(Amide):
         
         return structure
     
-    def _build_final_structure(self, initial_structure: pmd.Structure) -> pmd.Structure:
-        """
-        Builds a final structure with the amide bond formed.
-        
-        This method:
-        1. Identifies the nitrogen and carbon atoms involved in the amide bond
-        2. Removes Amber cap atoms if they are present (ACE, NME, NHE)
-        3. Finds and removes hydrogen atoms bonded to those atoms
-        4. Creates an amide bond between the nitrogen and carbon atoms
-        """
+    def _bfs(self, 
+             initial_structure: pmd.Structure, 
+             remove_amber_caps: bool,
+             ) -> pmd.Structure:
         # Create a copy to avoid modifying the original
         final_structure = initial_structure.copy()
         
@@ -180,10 +174,15 @@ class AmideHead2Tail(Amide):
             raise ValueError(f"Expected carbon atom for C2, got {c2_atom.element_symbol}")
         
         # Remove Amber cap atoms
-        final_structure = self._remove_amber_caps(final_structure)
+        if remove_amber_caps:
+            final_structure = self._remove_amber_caps(final_structure, 
+                                                      remake=False,
+                                                      )
         
         # Remove hydrogen atoms bonded to the nitrogen and carbon atoms
-        final_structure = self._remove_hydrogens_from_atoms(final_structure, [n1_idx, o1_idx])
+        final_structure = self._remove_hydrogens_from_atoms(final_structure, 
+                                                            [n1_idx, o1_idx], 
+                                                            remake=False)
         
         # Create an amide bond between the nitrogen and carbon atoms
         # For amide formation, we need to:
@@ -214,6 +213,23 @@ class AmideHead2Tail(Amide):
         
         return final_structure
     
+    def _build_final_structure(self, 
+                               initial_structure: pmd.Structure) -> pmd.Structure:
+        """
+        Builds a final structure with the amide bond formed.
+        
+        This method:
+        1. Identifies the nitrogen and carbon atoms involved in the amide bond
+        2. Removes Amber cap atoms if they are present (ACE, NME, NHE)
+        3. Finds and removes hydrogen atoms bonded to those atoms
+        4. Creates an amide bond between the nitrogen and carbon atoms
+        """
+        final_structure = self._bfs(initial_structure, 
+                                    remove_amber_caps=True,
+                                    )
+        
+        return final_structure
+    
 
 class AmideSide2Side(Amide):
     """
@@ -222,7 +238,22 @@ class AmideSide2Side(Amide):
     This represents amide bonds formed between sidechains, typically
     involving lysine's amine group and aspartate/glutamate's carboxyl group.
     """
-    pass
+    def _build_final_structure(self, 
+                               initial_structure: pmd.Structure) -> pmd.Structure:
+        """
+        Builds a final structure with the amide bond formed.
+        
+        This method:
+        1. Identifies the nitrogen and carbon atoms involved in the amide bond
+        2. Removes Amber cap atoms if they are present (ACE, NME, NHE)
+        3. Finds and removes hydrogen atoms bonded to those atoms
+        4. Creates an amide bond between the nitrogen and carbon atoms
+        """
+        final_structure = self._bfs(initial_structure, 
+                                    remove_amber_caps=False,
+                                    )
+        
+        return final_structure
 
 
 class AmideLysGlu(AmideSide2Side):
