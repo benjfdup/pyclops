@@ -3,74 +3,89 @@
 
 # this class would probably have a way to index what it needs to do for any given chemical loss, and
 # then applies the appropriate steps to the structure, if that makes sense.
-import parmed as pmd
+from typing import List
+from rdkit import Chem
 
 from ..core.chemical_loss import ChemicalLoss
 from ..losses.standard_file_locations import STANDARD_LINKAGE_PDB_LOCATIONS
 from ..utils.constants import AMBER_CAPS
 
 class StructureMaker():
+    """
+    Class to handle topology manipulations suggested by PyCLOPS
+
+    We will internally handle
+    """
     @staticmethod
-    def _remove_amber_caps(initial_structure: pmd.Structure,
-                           remove_cap_str: str, 
-                           remake: bool = True, 
-                           verbose: bool = False,
-                           ) -> pmd.Structure:
+    def fasta_to_mol(text: str, sanitize: bool = True):
         """
-        Removes Amber cap atoms (ACE, NME, NHE) from the structure based on the specified location.
+        Wraps RDKit native method to convert a FASTA sequence to an RDKit molecule
+        """
+        return Chem.rdmolfiles.MolFromFASTA(text, sanitize=sanitize)
+    
+    @staticmethod
+    def pdb_to_mol(pdb_file: str, 
+                   sanitize: bool = True, 
+                   removeHs: bool = True, 
+                   flavor: int = 0, 
+                   proximityBonding: bool = False,
+                   ):
+        """
+        Wraps RDKit native method to convert a PDB file to an RDKit molecule
+        """
+        return Chem.rdmolfiles.MolFromPDBFile(pdb_file, 
+                                              sanitize=sanitize, 
+                                              removeHs=removeHs, 
+                                              flavor=flavor, 
+                                              proximityBonding=proximityBonding,
+                                              )
+    
+    @staticmethod
+    def _remove_amber_caps(initial_mol: Chem.Mol,
+                           remove_cap_str: str,
+                           verbose: bool = False,):
+        """
+        Removes the amber caps from either the head, tail, or both.
+
+        remove_cap_str: "head", "tail", or "both"
+        """
+        if remove_cap_str == "head":
+            pass
+        elif remove_cap_str == "tail":
+            pass
+        elif remove_cap_str == "both":
+            pass
+        else:
+            raise ValueError(f"Invalid remove_cap_str: {remove_cap_str}")
+
+'''
+ @staticmethod
+   def _remove_amber_caps(initial_mol: Chem.Mol,
+                          remove_cap_str: str, 
+                          verbose: bool = False) -> Chem.Mol:
+        """
+        Removes Amber cap residues (ACE, NME, NHE) from the molecule based on the specified location.
         
         Args:
-            initial_structure: ParmED Structure object to modify
+            initial_mol: RDKit Mol object to modify
             remove_cap_str: String indicating which caps to remove ('head', 'tail', or 'both')
-            remake: Whether to rebuild the structure after modifications
             verbose: Whether to print debug information
             
         Returns:
-            Modified ParmED Structure object
+            Modified RDKit Mol object
             
         Raises:
             ValueError: If remove_cap_str is not one of the valid options
         """
-        valid_r_c_s_vals = ['head', 'tail', 'both']
-        if remove_cap_str not in valid_r_c_s_vals:
-            raise ValueError(f'remove_cap_str must be in {valid_r_c_s_vals}. Got {remove_cap_str}')
-            
-        # Create a copy to avoid modifying the original
-        structure = initial_structure.copy()
-        
-        # If no residues, return the structure as-is
-        if not structure.residues:
-            if verbose:
-                print("No residues found in the structure")
-            return structure
-            
-        # Build Amber mask based on cap type and location
-        mask_parts = []
-        
-        if remove_cap_str in ['head', 'both']:
-            first_residue = structure.residues[0]
-            if first_residue.name in AMBER_CAPS:
-                mask_parts.append(f":{first_residue.idx + 1}")
-                if verbose:
-                    print(f"Removing head cap: {first_residue.name}")
-        
-        if remove_cap_str in ['tail', 'both']:
-            last_residue = structure.residues[-1]
-            if last_residue != structure.residues[0] and last_residue.name in AMBER_CAPS:
-                mask_parts.append(f":{last_residue.idx + 1}")
-                if verbose:
-                    print(f"Removing tail cap: {last_residue.name}")
-        
-        if mask_parts:
-            # Combine mask parts with OR operator
-            mask = " | ".join(mask_parts)
-            structure.strip(mask)
-            
-            # Rebuild the structure if requested
-            if remake:
-                structure.remake()
-        
-        return structure
+    
+    def _remove_hydrogens(initial_structure: pmd.Structure, 
+                          atom_idxs: List[int], 
+                          remake: bool = True, 
+                          verbose: bool = False,
+                          ):
+        """
+        Removes all attatched hydrogens from the specified atoms.
+        """
     
     def make_topology(init_struct: pmd.Structure, chem_loss: ChemicalLoss):
         """
@@ -79,9 +94,15 @@ class StructureMaker():
 
         Does not yet regard particular coordinates.
         """
-        pass
 
-'''
+        loss_key = ''
+
+
+
+
+
+
+
     @abstractmethod
     def _build_final_structure(self,
                               initial_structure: pmd.Structure) -> pmd.Structure:
