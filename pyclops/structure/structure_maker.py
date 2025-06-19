@@ -60,6 +60,7 @@ class StructureMaker():
 
         remove_cap_str: "head", "tail", or "both"
         """
+        raise NotImplementedError("Not implemented. Sadly I will have to work on this later")
         if remove_cap_str == "head":
             pass
         elif remove_cap_str == "tail":
@@ -68,36 +69,6 @@ class StructureMaker():
             pass
         else:
             raise ValueError(f"Invalid remove_cap_str: {remove_cap_str}")
-
-    def _get_chem_loss_key(self, chem_loss: ChemicalLoss) -> str:
-        """
-        Returns a key for the chemical loss, which is used to index the appropriate function to apply
-        to the structure.
-        """
-        # very unsophisticated, but who cares.
-        chem_loss_key = ''
-        if isinstance(chem_loss, AmideHead2Tail):
-            chem_loss_key = 'AmideHead2Tail'
-        elif isinstance(chem_loss, AmideSide2Side):
-            chem_loss_key = 'AmideSide2Side'
-        elif isinstance(chem_loss, AmideSide2Head):
-            chem_loss_key = 'AmideSide2Head'
-        elif isinstance(chem_loss, AmideSide2Tail):
-            chem_loss_key = 'AmideSide2Tail'
-        elif isinstance(chem_loss, CysCarboxyl):
-            chem_loss_key = 'CysCarboxyl'
-        elif isinstance(chem_loss, CarboxylicCarbo):
-            chem_loss_key = 'CarboxylicCarbo'
-        elif isinstance(chem_loss, Disulfide):
-            chem_loss_key = 'Disulfide'
-        elif isinstance(chem_loss, LysArg):
-            chem_loss_key = 'LysArg'
-        elif isinstance(chem_loss, LysTyr):
-            chem_loss_key = 'LysTyr'
-        else:
-            raise ValueError(f"Chemical loss of type {type(chem_loss)} not supported.")
-
-        return chem_loss_key
         
     def make_molecule(self, 
                       initial_mol: Chem.Mol, 
@@ -109,7 +80,14 @@ class StructureMaker():
         The chemical loss instructs the molecule to undergo a specific cyclization chemistry
         between two amino acids.
         """
-        chem_loss_key = self._get_chem_loss_key(chem_loss)
+        # Amide bonds. Need to be careful about Amber caps.
+        if isinstance(chem_loss, Disulfide):
+            pass
+            # start with this case. Its the easiest.
+        
+
+
+
 
 '''
  @staticmethod
