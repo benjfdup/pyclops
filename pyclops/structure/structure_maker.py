@@ -22,7 +22,7 @@ from ..losses.standard_file_locations import STANDARD_LINKAGE_PDB_LOCATIONS
 from ..utils.constants import AMBER_CAPS
 
 
-class StructureMaker():
+class StructureMaker(): # relies jointly on MDAnalysis and RDKit
     """
     Class to handle topology manipulations suggested by PyCLOPS.
     Unfortunately, for now, this is only designed to work with cannonical 
@@ -63,7 +63,7 @@ class StructureMaker():
         return cls(initial_structure)
     
     @staticmethod
-    def _remove_amber_caps(
+    def _remove_amber_caps( # TODO: confirm that this works.
         initial_structure: mda.Universe,
         remove_cap_str: str,
         verbose: bool = False,
@@ -75,6 +75,7 @@ class StructureMaker():
         remove_cap_str: "head", "tail", or "both"
         """
         # Validate input
+        remove_cap_str = remove_cap_str.lower().strip() # should be fine since strings are immutable
         if remove_cap_str not in ["head", "tail", "both"]:
             raise ValueError(f"remove_cap_str must be 'head', 'tail', or 'both', got '{remove_cap_str}'")
         
@@ -120,12 +121,23 @@ class StructureMaker():
         return structure
     
     @staticmethod
-    def _universe_to_mol(universe: mda.Universe) -> Chem.Mol:
+    def _universe_to_mol(universe: mda.Universe, sanitize: bool = True) -> Chem.Mol:
         """
         Converts a universe to an RDKit molecule.
         """
         rdkit_mol = universe.atoms.convert_to("RDKIT")
+        if sanitize:
+            rdkit_mol = Chem.SanitizeMol(rdkit_mol)
         return rdkit_mol
+    
+    @staticmethod
+    def save_universe_as_pdb(universe: mda.Universe,
+                             filepath: str,
+                             ) -> None:
+        """
+        Saves a universe as a PDB file.
+        """
+        universe.atoms.write(filepath)
         
     def make_molecule(self, 
                       chem_loss: ChemicalLoss,
@@ -138,6 +150,8 @@ class StructureMaker():
         """
         # Amide bonds. Need to be careful about Amber caps.
         if isinstance(chem_loss, AmideHead2Tail):
-            pass
+            rem_cap_universe = self._remove_amber_caps(self.initial_structure, "both")
+            rem_cap_mol = self._universe_to_mol(rem_cap_universe)
+
         else:
             raise ValueError(f"Chemical loss of type {type(chem_loss)} not supported.")
