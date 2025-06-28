@@ -6,7 +6,7 @@ import torch
 
 from ..core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
 from ..utils.utils import _inherit_docstring
-from ..utils.constants import CANNONICAL_AMINO_ACID_3_LETTER_CODES, AMBER_CAPS
+from ..utils.constants import CANONICAL_AMINO_ACID_3_LETTER_CODES, AMBER_CAPS
 from .utils.standard_kde_locations import STANDARD_KDE_LOCATIONS
 
 
@@ -57,9 +57,9 @@ class Amide(ChemicalLoss, metaclass=ABCMeta):
             if set(res_atom_name_dict.keys()) != set(cls._required_to_tail_keys):
                 raise ValueError(f"""Invalid keys in res_atom_name_dict for 'tail' as term_name: 
                                  {tuple(res_atom_name_dict.keys())}. Must be {cls._required_to_tail_keys}""")
-        if res_name not in CANNONICAL_AMINO_ACID_3_LETTER_CODES:
-            raise ValueError(f"""Invalid res_name: {res_name}. Must be a cannonical amino acid 3 letter code.
-                             Valid codes are: {CANNONICAL_AMINO_ACID_3_LETTER_CODES}""")
+        if res_name not in CANONICAL_AMINO_ACID_3_LETTER_CODES:
+            raise ValueError(f"""Invalid res_name: {res_name}. Must be a canonical amino acid 3 letter code.
+                             Valid codes are: {CANONICAL_AMINO_ACID_3_LETTER_CODES}""")
         
         # Get all residues, excluding common caps
         exclude_residue_names = cls._common_caps

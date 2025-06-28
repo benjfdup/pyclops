@@ -7,7 +7,7 @@ import torch
 from ..core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
 from .utils.standard_kde_locations import STANDARD_KDE_LOCATIONS
 from ..utils.utils import _inherit_docstring
-from ..utils.constants import CANNONICAL_AMINO_ACID_3_LETTER_CODES, AMBER_CAPS
+from ..utils.constants import CANONICAL_AMINO_ACID_3_LETTER_CODES, AMBER_CAPS
 
 # Type variable for generic return types
 T = TypeVar('T', bound='CarboxylicCarbo')
@@ -137,9 +137,9 @@ class Side2Tail(CarboxylicCarbo):
                                     res_name: str, 
                                     res_atom_name_dict: Dict[str, Sequence[str]],
                                     ) -> None:
-        if res_name not in CANNONICAL_AMINO_ACID_3_LETTER_CODES:
-            raise ValueError(f"""Invalid res_name: {res_name}. Must be a cannonical amino acid 3 letter code.
-                             Valid codes are: {CANNONICAL_AMINO_ACID_3_LETTER_CODES}""")
+        if res_name not in CANONICAL_AMINO_ACID_3_LETTER_CODES:
+            raise ValueError(f"""Invalid res_name: {res_name}. Must be a canonical amino acid 3 letter code.
+                             Valid codes are: {CANONICAL_AMINO_ACID_3_LETTER_CODES}""")
         
         if set(res_atom_name_dict.keys()) != set(cls._required_to_tail_keys):
             raise ValueError(f"""res_atom_name_key_dict must have keys of exactly {cls._required_to_tail_keys}.

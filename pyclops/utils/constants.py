@@ -7,9 +7,9 @@ KB: float = 1.0
 AMBER_CAPS: Set[str] = {"ACE", "NME", "NHE"}
 
 CANONICAL_AMINO_ACID_3_LETTER_CODES: Set[str] = {
-    'Ala', 'Arg', 'Asn', 'Asp', 'Cys', 'Glu', 'Gln', 
-    'Gly', 'His', 'Ile', 'Leu', 'Lys', 'Met', 'Phe', 
-    'Pro', 'Ser', 'Thr', 'Trp', 'Tyr', 'Val',
+    'ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN', 
+    'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 
+    'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL',
 }
 
 OTHER_ALLOWED_RESIDUES: Set[str] = set() # {'ORN'} # we will support ornithine later

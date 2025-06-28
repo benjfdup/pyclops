@@ -6,8 +6,8 @@ ChemicalLoss instances are used to compute the loss for a given set of atom posi
 """
 __all__ = ['ChemicalLoss']
 
-from abc import ABC, abstractmethod
-from typing import Dict, Optional, Tuple, ClassVar, final, Sequence, List
+from abc import ABC
+from typing import Dict, Optional, Tuple, ClassVar, final, Sequence, List, Any
 from itertools import product
 import warnings
 import torch
@@ -229,7 +229,6 @@ class ChemicalLoss(ABC):
         loss = self._eval_loss(positions)
         return loss * self._weight + self._offset
     
-    @abstractmethod
     @classmethod
     def get_loss_instances(cls: type['ChemicalLoss'], 
                            traj: md.Trajectory, 
@@ -262,7 +261,7 @@ class ChemicalLoss(ABC):
     def _get_ordered_residue_pairs(traj: md.Trajectory, 
                                    res1_name: str, 
                                    res2_name: str,
-                                   ) -> Tuple[Tuple[md.Residue, md.Residue], ...]:
+                                   ) -> Tuple[Tuple[Any, Any], ...]:
         """
         Returns a list of tuples of the form (res1, res2). Largely for use in `get_loss_instances`. 
         Always avoids duplicate pairs and always avoids pairing a residue with itself.

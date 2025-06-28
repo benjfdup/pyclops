@@ -50,8 +50,8 @@ class ChemicalLossHandler(LossHandler):
                                                 offsets, temp, alpha, mask, 
                                                 device, debug,
                                                 )
+        self._atom_indexes_dict = self._generate_atom_indexes_dict(traj.topology)
         self._initialize_resources(traj, strategies, weights, offsets, temp, alpha, mask, device)
-        self._atom_indexes_dict = None # lazy init
 
         if len(self._chemical_losses) == 0:
             raise ValueError(
@@ -345,17 +345,16 @@ class ChemicalLossHandler(LossHandler):
     @property
     def topology(self) -> md.Topology:
         return self._traj.topology
-    def _generate_atom_indexes_dict(self) -> AtomIndexDict:
+    @staticmethod
+    def _generate_atom_indexes_dict(topology: md.Topology) -> AtomIndexDict:
         indices = {}
-        for residue in self.topology.residues:
+        for residue in topology.residues:
             for atom in residue.atoms:
                 indices[(residue.index, atom.name)] = atom.index
         return indices
     @property
     def atom_indexes_dict(self) -> AtomIndexDict:
         """Precompute a dictionary mapping (residue_index, atom_name) to atom indices."""
-        if self._atom_indexes_dict is None:
-            self._atom_indexes_dict = self._generate_atom_indexes_dict()
         return self._atom_indexes_dict
     @property
     def n_resonance_groups(self) -> int:
