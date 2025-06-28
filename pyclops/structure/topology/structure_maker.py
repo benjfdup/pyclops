@@ -282,7 +282,7 @@ class StructureMaker():
             if other_atom.element.strip().upper() == 'O':
                 return True
         return False
-    # test
+    
     def get_rdkit_atom_index(self, 
                             residue_index: int, 
                             atom_name: str,
