@@ -192,6 +192,9 @@ class Side2Tail(CarboxylicCarbo):
                 return ()
         
         user_specified_residue_list = [res for res in valid_residues if res.name == res_name]
+        # Exclude the C-terminal residue from user-specified residues to prevent self-bonding
+        # when the target residue type is the same as the C-terminal residue
+        user_specified_residue_list = [res for res in user_specified_residue_list if res.index != c_term_residue.index]
         if len(user_specified_residue_list) == 0:
             return ()
         

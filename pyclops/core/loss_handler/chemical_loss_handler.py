@@ -549,3 +549,22 @@ class ChemicalLossHandler(LossHandler):
         """
         smallest_loss_indices = self._get_smallest_loss_index(positions)
         return tuple(self._chemical_losses[i] for i in smallest_loss_indices)
+    
+    def _full_summary(self, ) -> str:
+        """
+        Returns a string which summarizes the constituant ChemicalLoss objects
+        """
+        summary: List[str] = []
+
+        for loss in self._chemical_losses:
+            resonance_key = loss._resonance_key
+            method = resonance_key[0]
+            idxs = list(resonance_key[1])
+            idxs.sort()
+            summary.append(method + " " + str(idxs))
+
+        final_str = ''
+        for string in summary:
+            final_str = final_str + string + "| "
+
+        return final_str.strip()
