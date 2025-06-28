@@ -129,9 +129,6 @@ class StructureMaker():
         """
         Convert the MDAnalysis universe to an RDKit molecule.
 
-        This method uses MDAnalysis's built-in RDKit conversion functionality
-        or falls back to PDB-based conversion if direct conversion isn't available.
-
         Returns:
             Chem.Mol, the RDKit molecule
         """
@@ -139,20 +136,19 @@ class StructureMaker():
         ag = self._initial_universe.select_atoms("protein")
         return ag.to_rdkit()
     
-    def _universe_to_rdkit_with_mapping(self,
-                                       ) -> Tuple[Chem.Mol, Dict[Tuple[int, str], int]]:
+    def _initial_universe_to_rdkit_with_mapping(self,
+                                                ) -> Tuple[Chem.Mol, Dict[Tuple[int, str], int]]:
         """
         Convert MDAnalysis universe to RDKit molecule with proper bond types
         and create a mapping from (residue_index, atom_name) to RDKit atom index.
         
         This method handles bond types correctly (e.g., C=O, S-S) and keeps hydrogens implicit.
+        Also sets the 3D coordinates of atoms based on their positions in the MDAnalysis universe.
         
         Returns:
-            - RDKit Mol with correct bond types
+            - RDKit Mol with correct bond types and 3D coordinates
             - Dictionary mapping (residue_index, atom_name) -> RDKit atom index
         """
-        from rdkit import Chem
-        from rdkit.Chem import BondType
         
         # Create editable molecule
         emol = Chem.EditableMol(Chem.Mol())
@@ -207,7 +203,16 @@ class StructureMaker():
         # 3) Convert to RDKit Mol
         mol = emol.GetMol()
         
-        # 4) Sanitize (assign valences, update hydrogens, set aromaticity)
+        # 4) Set 3D coordinates for all atoms
+        conf = mol.GetConformer()
+        for atom in protein_atoms:
+            rdkit_idx = mda_to_rdkit_idx.get(atom.index)
+            if rdkit_idx is not None:
+                # Get position from MDAnalysis (should be in Angstroms)
+                pos = atom.position
+                conf.SetAtomPosition(rdkit_idx, (pos[0], pos[1], pos[2]))
+        
+        # 5) Sanitize (assign valences, update hydrogens, set aromaticity)
         Chem.SanitizeMol(mol)
         
         return mol, resatom_to_rdkit_idx
@@ -277,7 +282,7 @@ class StructureMaker():
             if other_atom.element.strip().upper() == 'O':
                 return True
         return False
-    
+    # test
     def get_rdkit_atom_index(self, 
                             residue_index: int, 
                             atom_name: str,
