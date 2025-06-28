@@ -12,6 +12,6 @@ CANONICAL_AMINO_ACID_3_LETTER_CODES: Set[str] = {
     'Pro', 'Ser', 'Thr', 'Trp', 'Tyr', 'Val',
 }
 
-OTHER_ALLOWED_RESIDUES: Set[str] = {} # {'ORN'} # we will support ornithine later
+OTHER_ALLOWED_RESIDUES: Set[str] = set() # {'ORN'} # we will support ornithine later
 
 ALLOWED_RESIDUES: Set[str] = CANONICAL_AMINO_ACID_3_LETTER_CODES | AMBER_CAPS | OTHER_ALLOWED_RESIDUES
