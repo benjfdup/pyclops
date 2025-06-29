@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from typing import Optional, Dict, Sequence, Tuple, List, TypeVar
+from typing import Optional, Dict, Sequence, Tuple, List, TypeVar, final
 
 import mdtraj as md
 import torch
@@ -56,7 +56,7 @@ class AspGlu(Side2Side):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AspGlu', ...]:
+                           ) -> Tuple['AspGlu', ...]:
         return cls._get_donor_acceptor_linkages(
             traj=traj,
             atom_indexes_dict=atom_indexes_dict,
@@ -70,6 +70,7 @@ class AspGlu(Side2Side):
             device=device,
         )
 
+@final
 class AspAsp(Side2Side):
     """
     Aspartate's carboxyl group forms a bond with itself.
@@ -85,7 +86,7 @@ class AspAsp(Side2Side):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AspAsp', ...]:
+                           ) -> Tuple['AspAsp', ...]:
         return cls._get_donor_acceptor_linkages(
             traj=traj,
             atom_indexes_dict=atom_indexes_dict,
@@ -99,6 +100,7 @@ class AspAsp(Side2Side):
             device=device,
         )
 
+@final
 class GluGlu(Side2Side):
     """
     Glutamate's carboxyl group forms a bond with itself.
@@ -114,7 +116,7 @@ class GluGlu(Side2Side):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['GluGlu', ...]:
+                           ) -> Tuple['GluGlu', ...]:
         return cls._get_donor_acceptor_linkages(
             traj=traj,
             atom_indexes_dict=atom_indexes_dict,
@@ -176,7 +178,7 @@ class Side2Tail(CarboxylicCarbo):
                      offset: float = 0.0,
                      temp: float = 1.0,
                      device: Optional[torch.device] = None,
-                     ) -> tuple[T, ...]:
+                     ) -> Tuple[T, ...]:
         """
         Helper method to make `get_loss_instances` methods easier to write for losses that connect
         a sidechain to a terminal group via a carboxyl bond. Returns a tuple of instances of the calling class.
@@ -223,6 +225,7 @@ class Side2Tail(CarboxylicCarbo):
         
         return tuple(losses)
 
+@final
 class AspCTerm(Side2Tail):
     """
     Aspartate's carboxyl group forms a bond with a c-terminal carboxyl group.
@@ -238,7 +241,7 @@ class AspCTerm(Side2Tail):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AspCTerm', ...]:
+                           ) -> Tuple['AspCTerm', ...]:
         return cls._res_to_tail(
             traj=traj,
             res_name='ASP',
@@ -250,6 +253,7 @@ class AspCTerm(Side2Tail):
             device=device,
         )
     
+@final
 class GluCTerm(Side2Tail):
     """
     Glutamate's carboxyl group forms a bond with a c-terminal carboxyl group.
@@ -265,7 +269,7 @@ class GluCTerm(Side2Tail):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['GluCTerm', ...]:
+                           ) -> Tuple['GluCTerm', ...]:
         return cls._res_to_tail(
             traj=traj,
             res_name='GLU',
