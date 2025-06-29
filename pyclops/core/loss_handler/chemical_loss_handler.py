@@ -615,7 +615,7 @@ class ChemicalLossHandler(LossHandler):
             else:
                 summary_parts.append(loss_string)
         
-        return "| ".join(summary_parts)
+        return ", ".join(summary_parts)
 
     @property
     def summary(self, ) -> str:
