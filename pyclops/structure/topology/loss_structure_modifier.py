@@ -69,8 +69,8 @@ class LossStructureModifier(ABC):
     def modify_structure(self,
                          chemical_loss: ChemicalLoss,
                          rdkit_mol: Chem.Mol,
+                         mdtraj_atom_indexes_dict: AtomIndexDict,
                          rdkit_atom_indexes_dict: AtomIndexDict,
-                         mdtraj_atom_indexes_dict: AtomIndexDict, # from ChemicalLossHandler
                          ) -> Chem.Mol:
         """
         Modify the structure according to the corresponding ChemicalLoss.
@@ -86,6 +86,6 @@ class LossStructureModifier(ABC):
         self._validate_chemical_loss(chemical_loss)
         return self._mod_struct(chemical_loss, 
                                 rdkit_mol, 
-                                residue_idx_atom_name_to_atom_idx, 
-                                atom_indexes_dict,
+                                mdtraj_atom_indexes_dict,
+                                rdkit_atom_indexes_dict,
                                 )
