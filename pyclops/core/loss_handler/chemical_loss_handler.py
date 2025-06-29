@@ -182,6 +182,9 @@ class ChemicalLossHandler(LossHandler):
         for loss in chemical_losses:
             if loss.resonance_key is None:
                 raise ValueError(f"Resonance key cannot be None for loss {loss} in a ChemicalLossHandler")
+        # Remove any losses which have atoms in masked amino acids
+        if self._mask is not None:
+            chemical_losses = [loss for loss in chemical_losses if not any(residue_idx in self._mask for residue_idx in loss.resonance_key[1])]
         # Sort by resonance key: first by string, then by sorted frozenset
         chemical_losses.sort(key=lambda loss: (
             loss.resonance_key[0],
