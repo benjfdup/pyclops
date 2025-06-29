@@ -6,14 +6,17 @@ __all__ = [
     "StructureMaker",
 ]
 
-from typing import Union, Dict, Tuple, List, Optional
+from typing import Union
+import tempfile
+import os
 
 import numpy as np
 import torch
 import MDAnalysis as mda
 from rdkit import Chem
 
-from ...core.chemical_loss.chemical_loss import ChemicalLoss
+from ...core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict, AtomKey
+from ...core.loss_handler.chemical_loss_handler import ChemicalLossHandler
 
 # Type aliases
 ArrayLike = Union[torch.Tensor, np.ndarray]
@@ -22,77 +25,42 @@ ArrayLike = Union[torch.Tensor, np.ndarray]
 class StructureMaker():
     """
     This class is used to make a structure given an initial 
-    structure and a ChemicalLoss
+    structure (via a ChemicalLossHandler) and a ChemicalLoss
     """
 
     def __init__(
             self,
-            initial_universe: mda.Universe,
+            chemical_loss_handler: ChemicalLossHandler,
             ):
-        self._validate_universe(initial_universe)
-        self._initial_universe = initial_universe
+        self._chemical_loss_handler = chemical_loss_handler
+        self._initial_universe = self._chemical_loss_handler_to_universe()
+        self._initial_rdkit_mol = self._initial_universe_to_rdkit_mol()
+        self._residue_idx_atom_name_to_atom_idx = self._parse_rdkit_mol(self._initial_rdkit_mol)
+    
+    def _chemical_loss_handler_to_universe(self,
+                                           ) -> mda.Universe:
+        """
+        Convert the self._chemical_loss_handler ChemicalLossHandler to an MDAnalysis 
+        universe. Uses the first frame of the MDTraj trajectory for initial positions.
 
-    def _validate_universe(self,
-                           universe: mda.Universe,
-                           ) -> None:
+        Returns:
+            mda.Universe, the MDAnalysis universe
         """
-        Validate the universe to ensure it meets requirements for chemical modification.
+        # Get the MDTraj trajectory from the chemical loss handler
+        traj = self._chemical_loss_handler._traj
         
-        Checks:
-        1. No water molecules are present
-        2. Only one chain/segment is present  
-        3. All atoms belong to protein residues
-        
-        Raises:
-            ValueError: If any validation check fails
-        """
-        # Check 1: No water molecules
-        common_water_names = ['HOH', 'TIP3', 'TIP4', 'WAT', 'SOL', 'H2O', 'SPC']
-        water_selection = ' or '.join([f'resname {name}' for name in common_water_names])
-        water_atoms = universe.select_atoms(water_selection)
-        
-        if len(water_atoms) > 0:
-            unique_water_resnames = set(water_atoms.residues.resnames)
-            raise ValueError(f"Water molecules detected: {unique_water_resnames}. "
-                           "Please remove all water molecules from the structure.")
-        
-        # Check 2: Only one chain/segment
-        n_segments = len(universe.segments)
-        if n_segments != 1:
-            raise ValueError(f"Structure must contain exactly one chain/segment. "
-                           f"Found {n_segments} segments: {[seg.segid for seg in universe.segments]}")
-        
-        # Additional check for chain IDs if available
-        if hasattr(universe.atoms, 'chainids'):
-            unique_chains = set(universe.atoms.chainids)
-            if len(unique_chains) > 1:
-                raise ValueError(f"Structure must contain exactly one chain. "
-                               f"Found {len(unique_chains)} chains: {sorted(unique_chains)}")
-        
-        # Check 3: All atoms must be protein atoms
-        protein_atoms = universe.select_atoms("protein")
-        total_atoms = len(universe.atoms)
-        protein_atom_count = len(protein_atoms)
-        
-        if protein_atom_count == 0:
-            raise ValueError("No protein atoms found in the structure. "
-                           "Structure must contain protein residues.")
-        
-        if protein_atom_count != total_atoms:
-            non_protein_atoms = total_atoms - protein_atom_count
-            # Get examples of non-protein residues
-            non_protein_residues = universe.select_atoms("not protein").residues
-            unique_non_protein_resnames = set(non_protein_residues.resnames)
+        # Create a temporary PDB file with the first frame
+        with tempfile.NamedTemporaryFile(suffix='.pdb', delete=False) as tmp_file:
+            # Save the first frame to PDB
+            traj[0].save_pdb(tmp_file.name)
             
-            raise ValueError(f"All atoms must belong to protein residues. "
-                           f"Found {non_protein_atoms} non-protein atoms in residues: "
-                           f"{sorted(unique_non_protein_resnames)}. "
-                           f"Please ensure structure contains only protein atoms.")
+            # Load with MDAnalysis
+            universe = mda.Universe(tmp_file.name)
+            
+            # Clean up the temporary file
+            os.unlink(tmp_file.name)
         
-        # Optional: Check for common issues
-        n_residues = len(universe.residues)
-        if n_residues == 0:
-            raise ValueError("Structure must contain at least one residue.")
+        return universe
 
     @classmethod
     def from_pdb_file(cls, 
@@ -135,11 +103,34 @@ class StructureMaker():
         # Use MDAnalysis's built-in RDKit conversion
         ag = self._initial_universe.select_atoms("protein")
         return ag.to_rdkit()
+    
+    @staticmethod
+    def _parse_rdkit_mol(
+        mol: Chem.Mol,
+        ) -> AtomIndexDict:
+        """
+        Parse the RDKit molecule.
+        Returns a dictionary mapping from (residue index, residue name) to atom indexes.
+        This is used to map the atom indexes to the residue index and atom name.
+        """
+        n_non_hydrogens = len(mol.GetAtoms())
+        residue_idx_atom_name_to_atom_idx: AtomIndexDict = {}
+
+        for atom_idx in range(n_non_hydrogens):
+            atom = mol.GetAtomWithIdx(atom_idx)
+            residue_idx: int = atom.GetPDBResidueInfo().GetResidueNumber()
+            atom_name: str = atom.GetPDBResidueInfo().GetName().strip().upper()
+            atom_key: AtomKey = (residue_idx, atom_name)
+            residue_idx_atom_name_to_atom_idx[atom_key] = atom_idx
+
+        return residue_idx_atom_name_to_atom_idx
 
     def _make_structure(self, 
                         chemical_loss: ChemicalLoss,
                         ) -> Chem.Mol:
         """
-        Make a structure given a ChemicalLoss.
+        Make a structure given a ChemicalLoss. Equivalent to applying the 
+        ChemicalLoss to the initial structure (as if its supposed 
+        bond chemistry were actually present).
         """
         pass
