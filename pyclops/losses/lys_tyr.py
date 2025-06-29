@@ -12,11 +12,11 @@ class LysTyr(ChemicalLoss):
     """
     Class for lysine-tyrosine chemical interactions.
     """
-    _atom_idxs_keys = (
-        'N1',  # Nitrogen of the lysine (NZ)
-        'C1',  # CE of the lysine (behind the nitrogen)
-        'O1',  # Hydroxyl oxygen of the tyrosine (OH)
-        'C2',  # Zeta carbon of the tyrosine ring (CZ)
+    _atom_idxs_keys = ( # DO NOT CHANGE THE ORDER OF THESE KEYS, WILL AFFECT THE KDE CALCULATION & BREAK THE CODE
+        'N1',  # AA1 Nitrogen of the lysine (NZ)
+        'C1',  # AA1 CE of the lysine (behind the nitrogen)
+        'O1',  # AA2 Hydroxyl oxygen of the tyrosine (OH)
+        'C2',  # AA2 Zeta carbon of the tyrosine ring (CZ)
     )
     _kde_file = STANDARD_KDE_LOCATIONS['lys-tyr']
     _method = "LysTyr"

@@ -24,10 +24,9 @@ class Amide(ChemicalLoss, metaclass=ABCMeta):
     - O1: An oxygen of the carboxyl group (potentially resonant)
     """
     # required class variables
-    _atom_idxs_keys = (
+    _atom_idxs_keys = ( # DO NOT CHANGE THE ORDER OF THESE KEYS, WILL AFFECT THE KDE CALCULATION & BREAK THE CODE
         'N1',  # AA1 the nitrogen of the amide bond
         'C2',  # AA1 the carbon 'behind' the nitrogen (sometimes the alpha carbon, sometimes a sidechain carbon),
-
         'C1',  # AA2 the carbon of the carboxyl group
         'O1',  # AA2 an oxygen of the carboxyl group (potentially resonant)
         )
@@ -37,9 +36,9 @@ class Amide(ChemicalLoss, metaclass=ABCMeta):
     _common_caps = AMBER_CAPS
     _valid_oxygen_names = ('O', 'OXT') # perhaps make this a class variable
     _res_to_term_terminal_names = ('head', 'tail') # names of allowed terminal specifications for the `_res_to_term` method
-    _required_to_head_keys = (_atom_idxs_keys[1], _atom_idxs_keys[2]) # C1 and O1, because the head is the N-terminal 
+    _required_to_head_keys = ('C1', 'O1') # C1 and O1, because the head is the N-terminal 
                                                                         # (and therefore needs a carboxyl carbon and oxygen to bond with)
-    _required_to_tail_keys = (_atom_idxs_keys[0], _atom_idxs_keys[-1]) # N1 and C2, because the tail is the C-terminal 
+    _required_to_tail_keys = ('N1', 'C2') # N1 and C2, because the tail is the C-terminal 
                                                                         # (and therefore needs a terminal nitrogen and amine carbon to bond with)
 
     @classmethod

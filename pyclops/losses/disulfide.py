@@ -12,11 +12,11 @@ class Disulfide(ChemicalLoss):
     """
     Class for disulfide bond chemistries between two cysteine residues.
     """
-    _atom_idxs_keys = (
-        'S1',  # sulfur of the first cysteine
-        'C1',  # carbon bound to S1 (CB)
-        'S2',  # sulfur of the second cysteine
-        'C2',  # carbon bound to S2 (CB)
+    _atom_idxs_keys = ( # DO NOT CHANGE THE ORDER OF THESE KEYS, WILL AFFECT THE KDE CALCULATION & BREAK THE CODE
+        'S1',  # AA1 sulfur of the first cysteine
+        'C1',  # AA1 carbon bound to S1 (CB)
+        'S2',  # AA2 sulfur of the second cysteine
+        'C2',  # AA2 carbon bound to S2 (CB)
     )
     _kde_file = STANDARD_KDE_LOCATIONS['disulfide']
     _method = "Disulfide"

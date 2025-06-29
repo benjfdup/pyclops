@@ -24,11 +24,11 @@ class CysteineCarbo(ChemicalLoss, metaclass=ABCMeta):
             - 'O1': Oxygen atom of the carboxyl group
         _kde_file (str): Path to the KDE model file (.pt) for the statistical potential
     """
-    _atom_idxs_keys = (
-        'S1',  # sulfur of the cysteine
-        'C1',  # the carbon behind the sulfur
-        'C3',  # central carbon of the carboxyl
-        'O1',  # an oxygen of the carboxyl (potentially resonant)
+    _atom_idxs_keys = ( # DO NOT CHANGE THE ORDER OF THESE KEYS, WILL AFFECT THE KDE CALCULATION & BREAK THE CODE
+        'S1',  # AA1 sulfur of the cysteine
+        'C1',  # AA1 the carbon behind the sulfur
+        'C3',  # AA2 central carbon of the carboxyl
+        'O1',  # AA2 an oxygen of the carboxyl (potentially resonant)
     )
     _kde_file = STANDARD_KDE_LOCATIONS['cysteine-carbo']
 

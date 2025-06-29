@@ -11,11 +11,11 @@ class LysArg(ChemicalLoss):
     """
     Class for lysine-arginine chemical interactions.
     """
-    _atom_idxs_keys = (
-        'N1',  # Nitrogen of the Lysine (NZ)
-        'N2',  # One outer nitrogen of the arginine (NH1/NH2, resonant with N3)
-        'N3',  # The other outer nitrogen of the arginine (NH2/NH1, resonant with N2)
-        'N4',  # The "inner" nitrogen of the arginine (NE)
+    _atom_idxs_keys = ( # DO NOT CHANGE THE ORDER OF THESE KEYS, WILL AFFECT THE KDE CALCULATION & BREAK THE CODE
+        'N1',  # AA1 Nitrogen of the Lysine (NZ)
+        'N2',  # AA2 One outer nitrogen of the arginine (NH1/NH2, resonant with N3)
+        'N3',  # AA2 The other outer nitrogen of the arginine (NH2/NH1, resonant with N2)
+        'N4',  # AA2 The "inner" nitrogen of the arginine (NE)
     )
     _kde_file = STANDARD_KDE_LOCATIONS['lys-arg']
     _method = "LysArg"
