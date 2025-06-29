@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple, final
 
 import mdtraj as md
 import torch
@@ -7,7 +7,7 @@ from ..core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
 from ..utils.utils import _inherit_docstring
 from .utils.standard_kde_locations import STANDARD_KDE_LOCATIONS
 
-
+@final
 class Disulfide(ChemicalLoss):
     """
     Class for disulfide bond chemistries between two cysteine residues.
@@ -30,7 +30,7 @@ class Disulfide(ChemicalLoss):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['Disulfide', ...]:
+                           ) -> Tuple['Disulfide', ...]:
         return cls._get_donor_acceptor_linkages(
             traj=traj,
             atom_indexes_dict=atom_indexes_dict,
