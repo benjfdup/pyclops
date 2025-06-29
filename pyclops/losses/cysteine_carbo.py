@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from typing import Optional, Dict, Sequence, List, TypeVar
+from typing import Optional, Dict, Sequence, List, Tuple, TypeVar, final
 
 import mdtraj as md
 import torch
@@ -32,6 +32,7 @@ class CysteineCarbo(ChemicalLoss, metaclass=ABCMeta):
     )
     _kde_file = STANDARD_KDE_LOCATIONS['cysteine-carbo']
 
+@final
 class CysAsp(CysteineCarbo):
     """
     Cysteine's carboxyl group forms a bond with an aspartic acid carboxyl group.
@@ -47,7 +48,7 @@ class CysAsp(CysteineCarbo):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['CysAsp', ...]:
+                           ) -> Tuple['CysAsp', ...]:
         
         donor_atom_groups = {
             'S1': ['SG'],        # Cysteine's sulfur
@@ -72,6 +73,7 @@ class CysAsp(CysteineCarbo):
             device=device,
         )
     
+@final
 class CysGlu(CysteineCarbo):
     """
     Cysteine's carboxyl group forms a bond with a glutamic acid carboxyl group.
@@ -87,7 +89,7 @@ class CysGlu(CysteineCarbo):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['CysGlu', ...]:
+                           ) -> Tuple['CysGlu', ...]:
         donor_atom_groups = {
             'S1': ['SG'],        # Cysteine's sulfur
             'C1': ['CB'],        # Cysteine's carbon behind the sulfur
@@ -109,6 +111,7 @@ class CysGlu(CysteineCarbo):
             device=device,
         )
 
+@final
 class CysCTerm(CysteineCarbo):
     """
     Cysteine's carboxyl group forms a bond with a c-terminal carboxyl group.
@@ -126,7 +129,7 @@ class CysCTerm(CysteineCarbo):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['CysCTerm', ...]:
+                           ) -> Tuple['CysCTerm', ...]:
         return cls._res_to_tail(
             traj=traj,
             res_name='CYS',
@@ -178,7 +181,7 @@ class CysCTerm(CysteineCarbo):
                      offset: float = 0.0,
                      temp: float = 1.0,
                      device: Optional[torch.device] = None,
-                     ) -> tuple[T, ...]:
+                     ) -> Tuple[T, ...]:
         """
         Helper method to make `get_loss_instances` methods easier to write for losses that connect
         a sidechain to a terminal group via a carboxyl bond. Returns a tuple of instances of the calling class.
