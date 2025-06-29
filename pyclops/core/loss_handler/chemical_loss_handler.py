@@ -550,10 +550,14 @@ class ChemicalLossHandler(LossHandler):
         smallest_loss_indices = self._get_smallest_loss_index(positions)
         return tuple(self._chemical_losses[i] for i in smallest_loss_indices)
     
-    def _full_summary(self, ) -> str:
+    @property
+    def _raw_summary(self, ) -> str:
         """
         Returns a string which summarizes the constituant ChemicalLoss objects
         """
+        if self.n_losses == 0:
+            return ""
+        
         summary: List[str] = []
 
         for loss in self._chemical_losses:
@@ -568,3 +572,47 @@ class ChemicalLossHandler(LossHandler):
             final_str = final_str + string + "| "
 
         return final_str.strip()
+    
+    @property
+    def summary(self, ) -> str:
+        """
+        Returns a string which summarizes the constituent ChemicalLoss objects
+        grouped by resonance groups, with counts for multiple losses in the same group.
+        """
+        if self.n_losses == 0:
+            return ""
+        
+        # Group losses by resonance group
+        resonance_groups = self._resonance_groups
+        group_summaries = {}
+        
+        for i in range(self.n_losses):
+            group_idx = int(resonance_groups[i])
+            loss = self._chemical_losses[i]
+            resonance_key = loss._resonance_key
+            method = resonance_key[0]
+            idxs = list(resonance_key[1])
+            idxs.sort()
+            loss_string = method + " " + str(idxs)
+            
+            if group_idx not in group_summaries:
+                group_summaries[group_idx] = {
+                    'string': loss_string,
+                    'count': 1
+                }
+            else:
+                group_summaries[group_idx]['count'] += 1
+        
+        # Build the final summary string
+        summary_parts = []
+        for group_idx in sorted(group_summaries.keys()):
+            group_info = group_summaries[group_idx]
+            loss_string = group_info['string']
+            count = group_info['count']
+            
+            if count > 1:
+                summary_parts.append(f"{loss_string} (x{count} resonance groups)")
+            else:
+                summary_parts.append(loss_string)
+        
+        return "| ".join(summary_parts)
