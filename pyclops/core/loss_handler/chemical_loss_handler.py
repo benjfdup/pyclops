@@ -569,7 +569,7 @@ class ChemicalLossHandler(LossHandler):
 
         final_str = ''
         for string in summary:
-            final_str = final_str + string + "| "
+            final_str = final_str + string + ", "
 
         return final_str.strip()
     
