@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import final, Dict, Tuple
+from typing import final, Dict
 
 from rdkit import Chem
 
@@ -17,21 +17,29 @@ class LossStructureModifier(ABC):
         if self._method == '':
             raise ValueError('Subclasses must define a _method attribute')
     
-    def _reverse_atom_indexes_dict(self,
-                                   atom_indexes_dict: AtomIndexDict,
-                                   ) -> Dict[int, Tuple[int, str]]:
+    @final
+    @staticmethod
+    def _mdtraj_idx_to_rdkit_idx_dict(
+        mdtraj_atom_indexes_dict: AtomIndexDict,
+        rdkit_atom_indexes_dict: AtomIndexDict,
+        ) -> Dict[int, int]:
         """
-        Reverse the atom indexes dictionary.
+        Returns a map from the mdtraj atom indexes to the rdkit atom indexes.
+        This should result in the omission of hydrogens. This is a helper method
+        for _mod_struct, to be used in its subclasses.
         """
-        # this only works because the mapping is 1-to-1
-        return {v: k for k, v in atom_indexes_dict.items()}
-    
+        final_dict = {}
+        min_keyset = set(mdtraj_atom_indexes_dict.keys()) & set(rdkit_atom_indexes_dict.keys())
+        for key in min_keyset:
+            final_dict[mdtraj_atom_indexes_dict[key]] = rdkit_atom_indexes_dict[key]
+        return final_dict
+
     @abstractmethod
     def _mod_struct(self,
                     chemical_loss: ChemicalLoss,
                     rdkit_mol: Chem.Mol,
-                    residue_idx_atom_name_to_atom_idx: AtomIndexDict,
-                    atom_indexes_dict: AtomIndexDict, # from ChemicalLossHandler
+                    mdtraj_atom_indexes_dict: AtomIndexDict,
+                    rdkit_atom_indexes_dict: AtomIndexDict,
                     ) -> Chem.Mol:
         """
         Modify the structure according to the provided ChemicalLoss.
@@ -41,10 +49,8 @@ class LossStructureModifier(ABC):
         Args:
             chemical_loss: The ChemicalLoss to modify the structure according to.
             rdkit_mol: The RDKit molecule to modify.
-            residue_idx_atom_name_to_atom_idx: A dictionary mapping from (residue_index: int, atom_name: str) 
-            to atom indexes (int) in the RDKit molecule. Note that this is different from the atom_indexes_dict.
-            atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indices (int)
-            in the ChemicalLossHandler. Note that this is different from the residue_idx_atom_name_to_atom_idx.
+            rdkit_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indexes (int) in the RDKit molecule.
+            mdtraj_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indices (int) in the ChemicalLossHandler.
         """
         raise NotImplementedError('Subclasses must implement this method')
     
@@ -63,8 +69,8 @@ class LossStructureModifier(ABC):
     def modify_structure(self,
                          chemical_loss: ChemicalLoss,
                          rdkit_mol: Chem.Mol,
-                         residue_idx_atom_name_to_atom_idx: AtomIndexDict,
-                         atom_indexes_dict: AtomIndexDict, # from ChemicalLossHandler
+                         rdkit_atom_indexes_dict: AtomIndexDict,
+                         mdtraj_atom_indexes_dict: AtomIndexDict, # from ChemicalLossHandler
                          ) -> Chem.Mol:
         """
         Modify the structure according to the corresponding ChemicalLoss.
@@ -72,10 +78,8 @@ class LossStructureModifier(ABC):
         Args:
             chemical_loss: The ChemicalLoss to modify the structure according to.
             rdkit_mol: The RDKit molecule to modify.
-            residue_idx_atom_name_to_atom_idx: A dictionary mapping from (residue_index: int, atom_name: str) 
-            to atom indexes (int) in the RDKit molecule. Note that this is different from the atom_indexes_dict.
-            atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indices (int)
-            in the ChemicalLossHandler. Note that this is different from the residue_idx_atom_name_to_atom_idx.
+            residue_idx_atom_name_to_atom_idx: A dictionary mapping from (residue_index: int, atom_name: str) to atom indexes (int) in the RDKit molecule. Note that this is different from the atom_indexes_dict.
+            atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indices (int) in the ChemicalLossHandler. Note that this is different from the residue_idx_atom_name_to_atom_idx.
         Returns:
             The modified RDKit molecule.
         """
