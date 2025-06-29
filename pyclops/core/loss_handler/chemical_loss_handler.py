@@ -574,7 +574,7 @@ class ChemicalLossHandler(LossHandler):
         return final_str.strip()
     
     @property
-    def summary(self, ) -> str:
+    def _grouped_summary(self, ) -> str:
         """
         Returns a string which summarizes the constituent ChemicalLoss objects
         grouped by resonance groups, with counts for multiple losses in the same group.
@@ -616,3 +616,15 @@ class ChemicalLossHandler(LossHandler):
                 summary_parts.append(loss_string)
         
         return "| ".join(summary_parts)
+
+    @property
+    def summary(self, ) -> str:
+        """
+        Returns a string which summarizes the constituent ChemicalLoss objects
+        grouped by resonance groups, with counts for multiple losses in the same group.
+        """
+        #header = "Constituent Losses:\n"
+        #info = self._grouped_summary
+        #bar = len(info) * "-" + "\n"
+        #return header + bar + info
+        return self._grouped_summary
