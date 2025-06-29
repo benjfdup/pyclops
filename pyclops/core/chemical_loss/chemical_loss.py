@@ -10,6 +10,7 @@ from abc import ABC
 from typing import Dict, Optional, Tuple, ClassVar, final, Sequence, List, Any
 from itertools import product
 import warnings
+
 import torch
 import mdtraj as md
 

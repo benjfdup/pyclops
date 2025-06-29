@@ -44,5 +44,5 @@ DEFAULT_STRATEGIES: Set[Type[ChemicalLoss]] = {
     LysArg,
 
     # lys-tyr
-    # LysTyr, TODO: RE-ENABLE THIS WHEN WE FIX THE KDE FOR IT
+    LysTyr,
 }

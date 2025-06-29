@@ -14,7 +14,7 @@ class LysTyr(ChemicalLoss):
     """
     _atom_idxs_keys = (
         'N1',  # Nitrogen of the lysine (NZ)
-        'C1',  # Delta carbon of the lysine (CD) TODO: double check this is not really CE... but for now I'll trust it.
+        'C1',  # CE of the lysine (behind the nitrogen)
         'O1',  # Hydroxyl oxygen of the tyrosine (OH)
         'C2',  # Zeta carbon of the tyrosine ring (CZ)
     )

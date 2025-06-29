@@ -14,8 +14,8 @@ class Disulfide(ChemicalLoss):
     """
     _atom_idxs_keys = (
         'S1',  # sulfur of the first cysteine
-        'S2',  # sulfur of the second cysteine
         'C1',  # carbon bound to S1 (CB)
+        'S2',  # sulfur of the second cysteine
         'C2',  # carbon bound to S2 (CB)
     )
     _kde_file = STANDARD_KDE_LOCATIONS['disulfide']

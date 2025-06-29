@@ -18,14 +18,19 @@ class Amide(ChemicalLoss, metaclass=ABCMeta):
     and a carbon from a carboxyl group, with the loss of water.
     
     The geometry is defined by four atoms:
-    - N1: The nitrogen involved in the amide bond
+    - N1: The nitrogen of the amide bond
+    - C2: The carbon 'behind' the nitrogen (sometimes the alpha carbon, sometimes a sidechain carbon),
     - C1: The carbon of the carboxyl group
-    - O1: An oxygen from the carboxyl group (potentially resonant)
-    - C2: The carbon 'behind' the nitrogen (sometimes the alpha carbon, sometimes a sidechain carbon), 
-          in the amide's amino acid
+    - O1: An oxygen of the carboxyl group (potentially resonant)
     """
     # required class variables
-    _atom_idxs_keys = ('N1', 'C1', 'O1', 'C2')
+    _atom_idxs_keys = (
+        'N1',  # AA1 the nitrogen of the amide bond
+        'C2',  # AA1 the carbon 'behind' the nitrogen (sometimes the alpha carbon, sometimes a sidechain carbon),
+
+        'C1',  # AA2 the carbon of the carboxyl group
+        'O1',  # AA2 an oxygen of the carboxyl group (potentially resonant)
+        )
     _kde_file = STANDARD_KDE_LOCATIONS['amide']
 
     # helpful class variables unique to amide losses

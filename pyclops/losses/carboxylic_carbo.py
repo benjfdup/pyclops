@@ -26,7 +26,12 @@ class CarboxylicCarbo(ChemicalLoss, metaclass=ABCMeta):
     - C2: The carbon from the second carboxyl group
     - O2: An oxygen from the second carboxyl group
     """
-    _atom_idxs_keys = ('C1', 'O1', 'C2', 'O2')
+    _atom_idxs_keys = (
+        'C1',  # the carbon of the first carboxyl group
+        'O1',  # an oxygen of the first carboxyl group (potentially resonant)
+        'C2',  # the carbon of the second carboxyl group
+        'O2',  # an oxygen of the second carboxyl group (potentially resonant)
+    )
     _kde_file = STANDARD_KDE_LOCATIONS['carboxylic-carbo']
 
 class Side2Side(CarboxylicCarbo):
