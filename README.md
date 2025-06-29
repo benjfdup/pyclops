@@ -1,6 +1,4 @@
-### CRITICAL NOTE:
-
-Need to redo LysTyr KDE -- distances were computed between the wrong atoms.
+## PyCLOPS - a Python Cyclic Loss for the Optimization of Peptide Structures 👁️ 🧬
 
 ### Todos:
 
@@ -8,3 +6,7 @@ Need to redo LysTyr KDE -- distances were computed between the wrong atoms.
 - Implement OpenMM scoring properly, with handling of the implicit H20 as a solvant.
   - as a correlary, retrain your models on the chignolin data & validate correctly.
 - Correct and finish the structure maker
+
+### Project Structure:
+
+To come!
