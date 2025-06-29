@@ -1,4 +1,4 @@
-from typing import Optional, FrozenSet, List, Dict, Sequence
+from typing import Optional, FrozenSet, List, Dict, Sequence, Tuple,final
 from abc import ABCMeta
 
 import mdtraj as md
@@ -92,7 +92,7 @@ class Amide(ChemicalLoss, metaclass=ABCMeta):
                      offset: float = 0.0,
                      temp: float = 1.0,
                      device: Optional[torch.device] = None,
-                     ) -> tuple['Amide', ...]:
+                     ) -> Tuple['Amide', ...]:
         """
         Helper method to make `get_loss_instances` methods easier to write for losses that connect
         a sidechain to a terminal group via an amide bond. Returns a tuple of `Amide` instances (though
@@ -199,6 +199,7 @@ class Amide(ChemicalLoss, metaclass=ABCMeta):
         return tuple(losses)
 
 # head2tail
+@final
 class AmideHead2Tail(Amide):
     """
     Backbone-to-backbone amide bond between the N-terminus and C-terminus.
@@ -217,7 +218,7 @@ class AmideHead2Tail(Amide):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideHead2Tail', ...]:
+                           ) -> Tuple['AmideHead2Tail', ...]:
         
         # Get all residues, excluding common caps
         exclude_residue_names = cls._common_caps
@@ -308,6 +309,7 @@ class AmideSide2Side(Amide):
     """
     pass
 
+@final
 class AmideLysGlu(AmideSide2Side):
     """
     Amide bond between Lysine's sidechain NH3+ and Glutamate's sidechain COO-.
@@ -326,7 +328,7 @@ class AmideLysGlu(AmideSide2Side):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideLysGlu', ...]:
+                           ) -> Tuple['AmideLysGlu', ...]:
         
         # Define donor (lysine) and acceptor (glutamate) atom groups
         donor_atom_groups = {
@@ -352,6 +354,7 @@ class AmideLysGlu(AmideSide2Side):
             device=device if device is not None else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         )
     
+@final
 class AmideLysAsp(AmideSide2Side):
     """
     Amide bond between Lysine's sidechain NH3+ and Aspartate's sidechain COO-.
@@ -370,7 +373,7 @@ class AmideLysAsp(AmideSide2Side):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideLysAsp', ...]:
+                           ) -> Tuple['AmideLysAsp', ...]:
         
         # Define donor (lysine) and acceptor (glutamate) atom groups
         donor_atom_groups = {
@@ -396,6 +399,7 @@ class AmideLysAsp(AmideSide2Side):
             device=device if device is not None else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         )
 
+@final
 class AmideOrnGlu(AmideSide2Side):
     """
     Amide bond between Ornithine's sidechain NH3+ and Glutamate's sidechain COO-.
@@ -414,7 +418,7 @@ class AmideOrnGlu(AmideSide2Side):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideOrnGlu', ...]:
+                           ) -> Tuple['AmideOrnGlu', ...]:
         
         # Define donor (ornithine) and acceptor (glutamate) atom groups
         donor_atom_groups = {
@@ -450,6 +454,7 @@ class AmideSide2Head(Amide):
     """
     pass
 
+@final
 class AmideAspHead(AmideSide2Head):
     """
     Amide bond between Aspartate's sidechain COO- and the N-terminal amine group.
@@ -468,7 +473,7 @@ class AmideAspHead(AmideSide2Head):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideAspHead', ...]:
+                           ) -> Tuple['AmideAspHead', ...]:
         
         return cls._res_to_term(
             traj=traj,
@@ -482,6 +487,7 @@ class AmideAspHead(AmideSide2Head):
             device=device
         )
     
+@final
 class AmideGluHead(AmideSide2Head):
     """
     Amide bond between Glutamate's sidechain COO- and the N-terminal amine group.
@@ -500,7 +506,7 @@ class AmideGluHead(AmideSide2Head):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideGluHead', ...]:
+                           ) -> Tuple['AmideGluHead', ...]:
         
         return cls._res_to_term(
             traj=traj,
@@ -524,6 +530,7 @@ class AmideSide2Tail(Amide):
     """
     pass
 
+@final
 class AmideLysTail(AmideSide2Tail):
     """
     Amide bond between Lysine's sidechain NH3+ and the C-terminal carboxyl group.
@@ -542,7 +549,7 @@ class AmideLysTail(AmideSide2Tail):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideLysTail', ...]:
+                           ) -> Tuple['AmideLysTail', ...]:
         
         return cls._res_to_term(
             traj=traj,
@@ -556,6 +563,7 @@ class AmideLysTail(AmideSide2Tail):
             device=device
         )
     
+@final
 class AmideArgTail(AmideSide2Tail):
     """
     Amide bond between Arginine's sidechain NH3+ and the C-terminal carboxyl group.
@@ -574,7 +582,7 @@ class AmideArgTail(AmideSide2Tail):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideArgTail', ...]:
+                           ) -> Tuple['AmideArgTail', ...]:
         return cls._res_to_term(
             traj=traj,
             res_name='ARG',
@@ -587,6 +595,7 @@ class AmideArgTail(AmideSide2Tail):
             device=device
         )
     
+@final
 class AmideOrnTail(AmideSide2Tail):
     """
     Amide bond between Ornithine's sidechain NH3+ and the C-terminal carboxyl group.
@@ -605,7 +614,7 @@ class AmideOrnTail(AmideSide2Tail):
                            offset: float = 0.0,
                            temp: float = 1.0,
                            device: Optional[torch.device] = None,
-                           ) -> tuple['AmideOrnTail', ...]:
+                           ) -> Tuple['AmideOrnTail', ...]:
         return cls._res_to_term(
             traj=traj,
             res_name='ORN',
