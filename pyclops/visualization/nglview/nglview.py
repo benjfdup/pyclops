@@ -25,13 +25,14 @@ class NGLViewVisualizer:
     """
     def __init__(self,
                  pdb_file: PathLike,
+                 units_factor: float,
                  ):
         self._pdb_file = pdb_file
+        self._units_factor = units_factor
 
     def visualize_structure(
         self,
-        coordinates: TensorLike,
-        units_factor: float,
+        coordinates: Optional[TensorLike] = None,
         frame_idx: Optional[int] = None,
         style: str = "cartoon",
         color_scheme: str = "residueindex",
@@ -44,8 +45,8 @@ class NGLViewVisualizer:
         Create an interactive nglview visualization of a protein structure.
         
         Args:
-            coordinates: Array of shape [n_frames, n_atoms, 3] containing atomic coordinates
-            pdb_file: Path to the PDB file containing topology information
+            coordinates: Optional array of shape [n_frames, n_atoms, 3] containing atomic coordinates.
+                        If None, uses coordinates from the PDB file.
             frame_idx: Optional frame index to display (if None, shows first frame)
             style: Visualization style (e.g., 'cartoon', 'line', 'ball+stick')
             color_scheme: Color scheme for the visualization
@@ -57,18 +58,21 @@ class NGLViewVisualizer:
         Returns:
             nglview.NGLWidget: Interactive visualization widget
         """
-        # Convert torch tensor to numpy if needed
-        if isinstance(coordinates, torch.Tensor):
-            coordinates = coordinates.cpu().numpy()
-        
+        units_factor = self._units_factor
         # Load universe
         u = mda.Universe(str(self._pdb_file))
         
-        # Add coordinates as in-memory trajectory
-        coords_A = coordinates.copy()
-        coords_A *= units_factor # convert to Angstroms (which is what MDAnalysis expects)
-        
-        u.load_new(coords_A, format=MemoryReader)
+        # If coordinates are provided, use them; otherwise use PDB coordinates
+        if coordinates is not None:
+            # Convert torch tensor to numpy if needed
+            if isinstance(coordinates, torch.Tensor):
+                coordinates = coordinates.cpu().numpy()
+            
+            # Add coordinates as in-memory trajectory
+            coords_A = coordinates.copy()
+            coords_A *= units_factor # convert to Angstroms (which is what MDAnalysis expects)
+            
+            u.load_new(coords_A, format=MemoryReader)
         
         # Create nglview widget
         view = nv.show_mdanalysis(u)
@@ -97,9 +101,8 @@ class NGLViewVisualizer:
 
     def visualize_loss_atoms(
         self,
-        coordinates: TensorLike,
         chemical_loss: ChemicalLoss,
-        units_factor: float,
+        coordinates: Optional[TensorLike] = None,
         frame_idx: Optional[int] = None,
         style: str = "cartoon",
         color_scheme: str = "residueindex",
@@ -108,8 +111,8 @@ class NGLViewVisualizer:
         atom_scale: float = 0.5,
         atom_opacity: float = 0.6,
         highlight_color: str = "magenta",
-        highlight_scale: float = 1.2,
-        highlight_opacity: float = 0.9
+        highlight_scale: float = 0.6,
+        highlight_opacity: float = 0.9,
     ) -> nv.NGLWidget:
         """
         Create an interactive nglview visualization of the atoms considered in a chemical loss.
@@ -118,10 +121,9 @@ class NGLViewVisualizer:
         the specific atoms involved in the chemical loss (the 4 vertices of the tetrahedron).
         
         Args:
-            coordinates: Array of shape [n_frames, n_atoms, 3] containing atomic coordinates
             chemical_loss: ChemicalLoss instance containing the atom indices to highlight
-            units_factor: Factor to convert coordinates to Angstroms
-            pdb_file: Path to the PDB file containing topology information
+            coordinates: Optional array of shape [n_frames, n_atoms, 3] containing atomic coordinates.
+                        If None, uses coordinates from the PDB file.
             frame_idx: Optional frame index to display (if None, shows first frame)
             style: Visualization style for the main structure (e.g., 'cartoon', 'line', 'ball+stick')
             color_scheme: Color scheme for the main visualization
@@ -136,18 +138,21 @@ class NGLViewVisualizer:
         Returns:
             nglview.NGLWidget: Interactive visualization widget with highlighted loss atoms
         """
-        # Convert torch tensor to numpy if needed
-        if isinstance(coordinates, torch.Tensor):
-            coordinates = coordinates.cpu().numpy()
-        
+        units_factor = self._units_factor
         # Load universe
         u = mda.Universe(str(self._pdb_file))
         
-        # Add coordinates as in-memory trajectory
-        coords_A = coordinates.copy()
-        coords_A *= units_factor # convert to Angstroms (which is what MDAnalysis expects)
-        
-        u.load_new(coords_A, format=MemoryReader)
+        # If coordinates are provided, use them; otherwise use PDB coordinates
+        if coordinates is not None:
+            # Convert torch tensor to numpy if needed
+            if isinstance(coordinates, torch.Tensor):
+                coordinates = coordinates.cpu().numpy()
+            
+            # Add coordinates as in-memory trajectory
+            coords_A = coordinates.copy()
+            coords_A *= units_factor # convert to Angstroms (which is what MDAnalysis expects)
+            
+            u.load_new(coords_A, format=MemoryReader)
         
         # Create nglview widget
         view = nv.show_mdanalysis(u)
@@ -170,8 +175,8 @@ class NGLViewVisualizer:
         loss_atom_indices = chemical_loss.vertex_indices.cpu().numpy()
         
         # Create selection string for the highlighted atoms
-        # MDAnalysis uses 0-based indexing, so we need to add 1 for the selection string
-        atom_selection = " or ".join([f"index {idx}" for idx in loss_atom_indices])
+        # Try different nglview selection syntax for specific atom indices
+        atom_selection = f"@{loss_atom_indices[0]},{loss_atom_indices[1]},{loss_atom_indices[2]},{loss_atom_indices[3]}"
         
         # Add highlighted representation for the loss atoms
         view.add_representation('ball+stick',
@@ -184,8 +189,8 @@ class NGLViewVisualizer:
         view.add_representation('spacefill',
                             selection=atom_selection,
                             color=highlight_color,
-                            scale=highlight_scale * 0.8,
-                            opacity=highlight_opacity * 0.7)
+                            radius=highlight_scale * 1.0,
+                            opacity=highlight_opacity * 0.7,)
         
         view.background = background_color
         
