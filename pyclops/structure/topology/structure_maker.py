@@ -62,16 +62,6 @@ class StructureMaker():
         
         return universe
 
-    @classmethod
-    def from_pdb_file(cls, 
-                      pdb_file: str,
-                      ) -> 'StructureMaker':
-        """
-        Create a StructureMaker from a PDB file.
-        """
-        universe = mda.Universe(pdb_file)
-        return cls(universe)
-
     def _set_positions(self, 
                        positions: ArrayLike, # shape: [n_atoms, 3]
                        units_factor: float,

@@ -18,13 +18,14 @@ class DisulfideModifier(LossStructureModifier):
     
     def _mod_struct(self,
                     chemical_loss: ChemicalLoss,
-                    rdkit_mol: Chem.Mol,
                     mdtraj_atom_indexes_dict: AtomIndexDict,
                     rdkit_atom_indexes_dict: AtomIndexDict,
                     ) -> Chem.Mol:
         """
         Modify the structure according to the corresponding ChemicalLoss.
         """
+        rdkit_mol = self._initial_parsed_mol.Copy()
+        
         mdtraj_idx_to_rdkit_idx = self._mdtraj_idx_to_rdkit_idx_dict(
             mdtraj_atom_indexes_dict,
             rdkit_atom_indexes_dict,
