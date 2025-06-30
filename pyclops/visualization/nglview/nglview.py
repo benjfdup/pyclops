@@ -40,6 +40,8 @@ class NGLViewVisualizer:
         """
         if not isinstance(initial_universe, mda.Universe):
             raise ValueError("initial_universe must be an MDAnalysis Universe")
+        # for now, we will leave this be, but any future validation of the universe 
+        # should be done here
 
     @staticmethod
     def _validate_units_factor(units_factor: float,
