@@ -24,11 +24,42 @@ class NGLViewVisualizer:
     A class for visualizing protein structures and chemical losses.
     """
     def __init__(self,
-                 pdb_file: PathLike,
+                 initial_universe: mda.Universe,
                  units_factor: float,
                  ):
-        self._pdb_file = pdb_file
-        self._units_factor = units_factor
+        self._validate_initial_universe(initial_universe)
+        self._initial_universe = initial_universe
+        self._validate_units_factor(units_factor)
+        self._units_factor = float(units_factor)
+
+    @staticmethod
+    def _validate_initial_universe(initial_universe: mda.Universe,
+                                   ) -> None:
+        """
+        Validate the initial universe.
+        """
+        if not isinstance(initial_universe, mda.Universe):
+            raise ValueError("initial_universe must be an MDAnalysis Universe")
+
+    @staticmethod
+    def _validate_units_factor(units_factor: float,
+                               ) -> None:
+        """
+        Validate the units factor.
+        """
+        if units_factor <= 0.0:
+            raise ValueError("units_factor must be positive")
+        
+    @classmethod
+    def from_pdb_file(cls,
+                      pdb_file: PathLike,
+                      units_factor: float = 1.0,
+                      ) -> "NGLViewVisualizer":
+        """
+        Create a NGLViewVisualizer from a PDB file.
+        """
+        u = mda.Universe(str(pdb_file))
+        return cls(u, units_factor)
 
     def visualize_structure(
         self,
@@ -60,7 +91,7 @@ class NGLViewVisualizer:
         """
         units_factor = self._units_factor
         # Load universe
-        u = mda.Universe(str(self._pdb_file))
+        u = self._initial_universe
         
         # If coordinates are provided, use them; otherwise use PDB coordinates
         if coordinates is not None:
@@ -140,7 +171,7 @@ class NGLViewVisualizer:
         """
         units_factor = self._units_factor
         # Load universe
-        u = mda.Universe(str(self._pdb_file))
+        u = self._initial_universe
         
         # If coordinates are provided, use them; otherwise use PDB coordinates
         if coordinates is not None:
