@@ -1,3 +1,20 @@
+__all__ = [
+    'Amide',
+    'AmideHead2Tail',
+    'AmideSide2Side',
+    'AmideLysGlu',
+    'AmideLysAsp',
+    'AmideOrnGlu',
+    'AmideOrnAsp',
+    'AmideSide2Head',
+    'AmideAspHead',
+    'AmideGluHead',
+    'AmideSide2Tail',
+    'AmideLysTail',
+    'AmideArgTail',
+    'AmideOrnTail',
+]
+
 from typing import Optional, FrozenSet, List, Dict, Sequence, Tuple,final
 from abc import ABCMeta
 

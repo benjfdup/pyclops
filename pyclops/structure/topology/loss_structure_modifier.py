@@ -24,6 +24,17 @@ class LossStructureModifier(ABC):
         if self._method == '':
             raise ValueError('Subclasses must define a _method attribute')
         self._initial_parsed_mol = initial_parsed_mol # must come  with info on residues and atom idxs.
+
+    @final
+    @property
+    def initial_parsed_mol(self) -> Chem.Mol:
+        """
+        A deep copy of the initial parsed molecule.
+        """
+        return Chem.Mol(self._initial_parsed_mol) # clones the initial parsed molecule
+                                                  # Note: we cannot use deepcopy here, as RDKit molecules are C++ objects
+                                                  # under the hood. Special thanks to Dr. Richard Lewis: 
+                                                  # https://sourceforge.net/p/rdkit/mailman/message/33652439/
     
     @final
     @staticmethod
@@ -94,10 +105,7 @@ class LossStructureModifier(ABC):
             The modified RDKit molecule.
         """
         self._validate_chemical_loss(chemical_loss)
-        final_rdkit_mol = self._mod_struct(Chem.Mol(self._initial_parsed_mol), # clones the initial parsed molecule
-                                           # Note: we cannot use deepcopy here, as RDKit molecules are C++ objects
-                                           # under the hood. Special thanks to Dr. Richard Lewis: 
-                                           # https://sourceforge.net/p/rdkit/mailman/message/33652439/
+        final_rdkit_mol = self._mod_struct(self.initial_parsed_mol,
                                            chemical_loss, 
                                            mdtraj_atom_indexes_dict,
                                            rdkit_atom_indexes_dict,)
