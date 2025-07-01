@@ -104,14 +104,17 @@ class LysArgModifier(LossStructureModifier):
         if arg_idx is None or lys_idx is None:
             raise ValueError(f"Could not find arginine or lysine in the molecule for the chemical loss {chemical_loss.resonance_key}")
         
+        # non resonant atom
         n1_idx = rdkit_atom_indexes_dict[(lys_idx, 'NZ')]
 
+        # resonant atoms (so we must get this from the loss itself)
         n2_key = inverse_mdtraj_atom_indexes_dict[chemical_loss._atom_idxs['N2']]
         n2_idx = rdkit_atom_indexes_dict[n2_key]
 
         n3_key = inverse_mdtraj_atom_indexes_dict[chemical_loss._atom_idxs['N3']]
         n3_idx = rdkit_atom_indexes_dict[n3_key]
 
+        # back to non resonant atoms (so we can get them however we want)
         n4_idx = rdkit_atom_indexes_dict[(arg_idx, 'NE')]
         c1_idx = rdkit_atom_indexes_dict[(arg_idx, 'CZ')]
         
