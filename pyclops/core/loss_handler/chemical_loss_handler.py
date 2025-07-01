@@ -371,7 +371,7 @@ class ChemicalLossHandler(LossHandler):
     def chemical_losses(self) -> Tuple[ChemicalLoss, ...]:
         """
         Immutable tuple of ChemicalLoss objects. Serves as a read-only view of 
-        the ChemicalLoss objects which power the `ChemicalLossHandler` instance.
+        the `ChemicalLoss` objects which power the `ChemicalLossHandler` instance.
         """
         return self._chemical_losses
     

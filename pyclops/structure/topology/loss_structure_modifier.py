@@ -14,8 +14,13 @@ class LossStructureModifier(ABC):
     _method: str = ''
 
     def __init__(self,
-                 initial_parsed_mol: Chem.Mol,
+                 initial_parsed_mol: Chem.Mol, # should be produced by MDAnalysis's to_rdkit() method
                  ):
+        """
+        Args:
+            initial_parsed_mol: RDKit molecule, produced by MDAnalysis's to_rdkit() method.
+                This should come with info on residues and atom idxs (which is not the default in RDKit).
+        """
         if self._method == '':
             raise ValueError('Subclasses must define a _method attribute')
         self._initial_parsed_mol = initial_parsed_mol # must come  with info on residues and atom idxs.
@@ -68,8 +73,8 @@ class LossStructureModifier(ABC):
 
         Args:
             chemical_loss: The ChemicalLoss to modify the structure according to.
-            rdkit_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indexes (int) in the RDKit molecule.
             mdtraj_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indices (int) in the ChemicalLossHandler.
+            rdkit_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indexes (int) in the RDKit molecule.
 
         Returns:
             The modified RDKit molecule (based on the initial parsed molecule)
@@ -98,13 +103,14 @@ class LossStructureModifier(ABC):
 
         Args:
             chemical_loss: The ChemicalLoss to modify the structure according to.
-            residue_idx_atom_name_to_atom_idx: A dictionary mapping from (residue_index: int, atom_name: str) to atom indexes (int) in the RDKit molecule. Note that this is different from the atom_indexes_dict.
-            atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indices (int) in the ChemicalLossHandler. Note that this is different from the residue_idx_atom_name_to_atom_idx.
+            mdtraj_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indices (int) in the ChemicalLossHandler. Note that this is different from the residue_idx_atom_name_to_atom_idx.
+            rdkit_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indexes (int) in the RDKit molecule. Note that this is different from the atom_indexes_dict.
         Returns:
             The modified RDKit molecule.
         """
         self._validate_chemical_loss(chemical_loss)
-        return self._mod_struct(chemical_loss, 
-                                mdtraj_atom_indexes_dict,
-                                rdkit_atom_indexes_dict,
-                                )
+        final_rdkit_mol = self._mod_struct(chemical_loss, 
+                                           mdtraj_atom_indexes_dict,
+                                           rdkit_atom_indexes_dict,)
+        Chem.SanitizeMol(final_rdkit_mol)
+        return final_rdkit_mol
