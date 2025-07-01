@@ -28,9 +28,9 @@ class CarboxylicCarbo(ChemicalLoss, metaclass=ABCMeta):
     """
     _atom_idxs_keys = ( # DO NOT CHANGE THE ORDER OF THESE KEYS, WILL AFFECT THE KDE CALCULATION & BREAK THE CODE
         'C1',  # the carbon of the first carboxyl group
-        'O1',  # an oxygen of the first carboxyl group (potentially resonant)
+        'O1',  # an oxygen of the first carboxyl group (potentially resonant). Becomes a nitrogen in the final structure.
         'C2',  # the carbon of the second carboxyl group
-        'O2',  # an oxygen of the second carboxyl group (potentially resonant)
+        'O2',  # an oxygen of the second carboxyl group (potentially resonant). Becomes a nitrogen in the final structure.
     )
     _kde_file = STANDARD_KDE_LOCATIONS['carboxylic-carbo']
 

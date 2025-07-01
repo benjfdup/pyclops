@@ -20,6 +20,7 @@ from ...core.loss_handler.chemical_loss_handler import ChemicalLossHandler
 from .utils import DEFAULT_MODIFIER_DICT
 from .loss_structure_modifier import LossStructureModifier
 from .structure_modifier.amide_modifier import Amide2TermModifier
+from .structure_modifier.carboxylic_carbo_modifier import CarboxylicCarbo2CTermModifier
 
 # Type aliases
 ArrayLike = Union[torch.Tensor, np.ndarray]
@@ -145,6 +146,16 @@ class StructureMaker():
         """
         return Chem.Mol(self._initial_rdkit_mol)
     
+    def _is_terminal_subclass(self,
+                              modifier_type: Type[LossStructureModifier],
+                              ) -> bool:
+        """
+        Determine if the modifier is a subclass which connects to a terminal group.
+        """
+        terminal_subclasses = (Amide2TermModifier, 
+                               CarboxylicCarbo2CTermModifier)
+        return any(issubclass(modifier_type, cls) for cls in terminal_subclasses)
+    
     def _remove_relevant_amber_caps(self,
                                     chemical_loss: ChemicalLoss,
                                     ) -> Chem.Mol:
@@ -174,7 +185,7 @@ class StructureMaker():
         except KeyError:
             raise ValueError(f"No modifier type found for chemical loss method: {chemical_loss.method}")
         
-        if issubclass(modifier_type, Amide2TermModifier):
+        if self._is_terminal_subclass(modifier_type):
             init_mol = self._remove_relevant_amber_caps(chemical_loss)
         else:
             init_mol = self.initial_rdkit_mol
