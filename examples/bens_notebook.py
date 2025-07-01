@@ -9,6 +9,6 @@ print(chem_loss_handler.summary)
 
 struct_mkr = StructureMaker(chem_loss_handler)
 
-disulfide_loss = chem_loss_handler.chemical_losses[-1]
+head2tail_loss = chem_loss_handler.chemical_losses[0]
 
-struct_mkr.make_structure(disulfide_loss)
+struct_mkr.make_structure(head2tail_loss)

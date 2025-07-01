@@ -24,7 +24,7 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
     more complicated) -- Amber Caps will be removed in the StructureMaker.
     """
     @final
-    def _inner_mod(
+    def _inner_mod(self,
                    initial_parsed_mol: Chem.Mol,
                    carboxyl_carbon_idx: int,
                    amide_nitrogen_idx: int,
@@ -40,9 +40,9 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
         
         Args:
             initial_parsed_mol: The initial parsed molecule.
-            carboxyl_carbon_idx: The index of the carboxyl carbon.
-            amide_nitrogen_idx: The index of the amide nitrogen.
-            oxygen_to_remove_idx: The index of the oxygen to remove. 
+            carboxyl_carbon_idx: The index of the carboxyl carbon (rdkit atom index).
+            amide_nitrogen_idx: The index of the amide nitrogen (rdkit atom index).
+            oxygen_to_remove_idx: The index of the oxygen to remove (rdkit atom index). 
             If None, no oxygen is removed.
             
         Returns:
@@ -78,8 +78,8 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
         Args:
             chemical_loss: The chemical loss object containing atom indices.
             initial_parsed_mol: The initial parsed molecule.
-            carboxyl_carbon_idx: The index of the carboxyl carbon.
-            amide_nitrogen_idx: The index of the amide nitrogen.
+            carboxyl_carbon_idx: The index of the carboxyl carbon (mdtraj atom index).
+            amide_nitrogen_idx: The index of the amide nitrogen (mdtraj atom index).
             mdtraj_atom_indexes_dict: Dictionary mapping atom names to MDTraj atom indices.
             rdkit_atom_indexes_dict: Dictionary mapping atom names to RDKit atom indices.
             
@@ -88,8 +88,15 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
         """
 
         # get all oxygens attached to the carboxyl carbon
-        carboxyl_carbon = initial_parsed_mol.GetAtomWithIdx(carboxyl_carbon_idx)
-        oxygen_indices = []
+        inverse_mdtraj_atom_indexes_dict = self._invert_dict(mdtraj_atom_indexes_dict)
+        carboxyl_carbon_key = inverse_mdtraj_atom_indexes_dict[carboxyl_carbon_idx]
+        amide_nitrogen_key = inverse_mdtraj_atom_indexes_dict[amide_nitrogen_idx]
+
+        carboxyl_carbon_rdkit_idx = rdkit_atom_indexes_dict[carboxyl_carbon_key]
+        amide_nitrogen_rdkit_idx = rdkit_atom_indexes_dict[amide_nitrogen_key]
+
+        carboxyl_carbon = initial_parsed_mol.GetAtomWithIdx(carboxyl_carbon_rdkit_idx)
+        oxygen_indices = [] # rdkit atom indices
         
         for neighbor in carboxyl_carbon.GetNeighbors():
             if neighbor.GetAtomicNum() == 8:  # Atomic number 8 is oxygen
@@ -103,25 +110,24 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
         
         if len(oxygen_indices) == 1:
             return self._inner_mod(initial_parsed_mol,
-                                   carboxyl_carbon_idx,
-                                   amide_nitrogen_idx,
+                                   carboxyl_carbon_rdkit_idx,
+                                   amide_nitrogen_rdkit_idx,
                                    oxygen_to_remove_idx=None,
                                    )
         else:
-            inverse_mdtraj_atom_indexes_dict = self._invert_dict(mdtraj_atom_indexes_dict)
             oxygen_to_keep_key = inverse_mdtraj_atom_indexes_dict[chemical_loss._atom_idxs['O1']]
-            oxygen_to_keep_idx = rdkit_atom_indexes_dict[oxygen_to_keep_key]
+            oxygen_to_keep_rdkit_idx = rdkit_atom_indexes_dict[oxygen_to_keep_key]
 
-            if oxygen_to_keep_idx not in oxygen_indices:
-                raise ValueError(f"Oxygen to keep {oxygen_to_keep_idx} is not attached to the carboxyl carbon {carboxyl_carbon_idx}")
+            if oxygen_to_keep_rdkit_idx not in oxygen_indices:
+                raise ValueError(f"Oxygen to keep {oxygen_to_keep_rdkit_idx} is not attached to the carboxyl carbon {carboxyl_carbon_idx}")
 
             # remove the oxygen that is not the one to keep
-            oxygen_to_remove_idx = oxygen_indices[0] if oxygen_indices[0] != oxygen_to_keep_idx else oxygen_indices[1]
+            oxygen_to_remove_idx = oxygen_indices[0] if oxygen_indices[0] != oxygen_to_keep_rdkit_idx else oxygen_indices[1]
 
             return self._inner_mod(
                 initial_parsed_mol,
-                carboxyl_carbon_idx,
-                amide_nitrogen_idx,
+                carboxyl_carbon_rdkit_idx,
+                amide_nitrogen_rdkit_idx,
                 oxygen_to_remove_idx=oxygen_to_remove_idx,
                 )
     
