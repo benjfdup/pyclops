@@ -15,8 +15,9 @@ class LysTyr(ChemicalLoss):
     _atom_idxs_keys = ( # DO NOT CHANGE THE ORDER OF THESE KEYS, WILL AFFECT THE KDE CALCULATION & BREAK THE CODE
         'N1',  # AA1 Nitrogen of the lysine (NZ)
         'C1',  # AA1 CE of the lysine (behind the nitrogen)
+
         'O1',  # AA2 Hydroxyl oxygen of the tyrosine (OH)
-        'C2',  # AA2 Zeta carbon of the tyrosine ring (CZ)
+        'C2',  # AA2 CE1 or CE2 of the tyrosine ring (this is potentially resonant)
     )
     _kde_file = STANDARD_KDE_LOCATIONS['lys-tyr']
     _method = "LysTyr"
@@ -37,7 +38,7 @@ class LysTyr(ChemicalLoss):
             donor_resname='LYS',
             acceptor_resname='TYR',
             donor_atom_groups={'N1': ['NZ'], 'C1': ['CD']},
-            acceptor_atom_groups={'O1': ['OH'], 'C2': ['CZ']},
+            acceptor_atom_groups={'O1': ['OH'], 'C2': ['CE1', 'CE2', 'CEx', 'CEy', 'CE%']},
             weight=weight,
             offset=offset,
             temp=temp,
