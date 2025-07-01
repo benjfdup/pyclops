@@ -21,6 +21,7 @@ from .utils import DEFAULT_MODIFIER_DICT
 from .loss_structure_modifier import LossStructureModifier
 from .structure_modifier.amide_modifier import Amide2TermModifier
 from .structure_modifier.carboxylic_carbo_modifier import CarboxylicCarbo2CTermModifier
+from .structure_modifier.cysteine_carbo_modifier import CysteineCarbo2CTermModifier
 
 # Type aliases
 ArrayLike = Union[torch.Tensor, np.ndarray]
@@ -153,7 +154,8 @@ class StructureMaker():
         Determine if the modifier is a subclass which connects to a terminal group.
         """
         terminal_subclasses = (Amide2TermModifier, 
-                               CarboxylicCarbo2CTermModifier)
+                               CarboxylicCarbo2CTermModifier,
+                               CysteineCarbo2CTermModifier)
         return any(issubclass(modifier_type, cls) for cls in terminal_subclasses)
     
     def _remove_relevant_amber_caps(self,

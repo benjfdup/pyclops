@@ -21,7 +21,7 @@ class CysteineCarbo(ChemicalLoss, metaclass=ABCMeta):
             - 'S1': Sulfur atom of the cysteine (SG)
             - 'C1': CB carbon behind the sulfur in cysteine
             - 'C3': Central carbon of the carboxyl group
-            - 'O1': Oxygen atom of the carboxyl group
+            - 'O1': Oxygen atom of the carboxyl group (potentially resonant)
         _kde_file (str): Path to the KDE model file (.pt) for the statistical potential
     """
     _atom_idxs_keys = ( # DO NOT CHANGE THE ORDER OF THESE KEYS, WILL AFFECT THE KDE CALCULATION & BREAK THE CODE

@@ -19,6 +19,11 @@ from .structure_modifier.carboxylic_carbo_modifier import (
     AspCTermModifier,
     GluCTermModifier,
 )
+from .structure_modifier.cysteine_carbo_modifier import (
+    CysAspModifier,
+    CysGluModifier,
+    CysCTermModifier,
+)
 from .structure_modifier.disulfide_modifier import DisulfideModifier
 
 DEFAULT_MODIFIER_DICT: Dict[str, Type[LossStructureModifier]] = {
@@ -39,6 +44,11 @@ DEFAULT_MODIFIER_DICT: Dict[str, Type[LossStructureModifier]] = {
     GluGluModifier._method: GluGluModifier,
     AspCTermModifier._method: AspCTermModifier,
     GluCTermModifier._method: GluCTermModifier,
+
+    # cysteine carbo losses
+    CysAspModifier._method: CysAspModifier,
+    CysGluModifier._method: CysGluModifier,
+    CysCTermModifier._method: CysCTermModifier,
 
     # disulfide losses
     DisulfideModifier._method: DisulfideModifier,
