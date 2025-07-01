@@ -17,8 +17,8 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
     """
     Modify the structure according to the corresponding ChemicalLoss.
     """
-    _fragment: str = "c1cc(ccc1CN)CN" # the fragment to be added to the structure
-    _fragment_rdkit_mol: Chem.Mol = Chem.MolFromSmiles(_fragment)
+    _fragment: str = "c1cc(ccc1C)C" # the fragment to be added to the structure
+    _fragment_rdkit_mol: Chem.Mol = Chem.MolFromSmiles(_fragment) # essentially a benzene ring with 2 exterior carbons.
 
     @property
     def fragment_rdkit_mol(self) -> Chem.Mol:
@@ -48,83 +48,62 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
         """
         emol = Chem.EditableMol(initial_parsed_mol)
 
-        if o1_idx > o2_idx:
-            greater_idx = o1_idx
-            lesser_idx = o2_idx
-        elif o1_idx < o2_idx:
-            greater_idx = o2_idx
-            lesser_idx = o1_idx
+        # Create nitrogen atoms to replace the oxygens
+        n1 = Chem.Atom('N')
+        n2 = Chem.Atom('N')
+        
+        # Replace the oxygen atoms with nitrogen atoms
+        emol.ReplaceAtom(o1_idx, n1)
+        emol.ReplaceAtom(o2_idx, n2)
+        
+        # Get the molecule after oxygen replacement
+        mol_after_replace = emol.GetMol()
+        
+        # Combine the modified molecule with the fragment using CombineMols
+        combined_mol = Chem.CombineMols(mol_after_replace, self.fragment_rdkit_mol)
+        
+        # Get the number of atoms in the original molecule after replacement
+        num_atoms_original = mol_after_replace.GetNumAtoms()
+        
+        # Find the outer carbons of the fragment (the two carbons outside the benzene ring)
+        # The fragment is "c1cc(ccc1C)C" - benzene ring with two exterior carbons
+        outer_carbon_indices = []
+        
+        # The fragment has 8 atoms: 6 carbons in benzene ring + 2 exterior carbons
+        # In the combined molecule, the fragment atoms start at num_atoms_original
+        # The exterior carbons are at positions 6 and 7 in the fragment (0-indexed)
+        # So in the combined molecule, they're at num_atoms_original + 6 and num_atoms_original + 7
+        outer_carbon_1_idx = num_atoms_original + 6  # First exterior carbon
+        outer_carbon_2_idx = num_atoms_original + 7  # Second exterior carbon
+        
+        # Verify these are actually carbons
+        if (combined_mol.GetAtomWithIdx(outer_carbon_1_idx).GetAtomicNum() == 6 and 
+            combined_mol.GetAtomWithIdx(outer_carbon_2_idx).GetAtomicNum() == 6):
+            outer_carbon_indices = [outer_carbon_1_idx, outer_carbon_2_idx]
         else:
-            raise ValueError(f"Oxygen indices {o1_idx} and {o2_idx} are the same")
-        
-        # Get the fragment molecule and its atoms
-        fragment_mol = self.fragment_rdkit_mol
-        fragment_atoms = fragment_mol.GetAtoms()
-        
-        # Find the two nitrogen atoms in the fragment
-        nitrogen_atoms = [atom for atom in fragment_atoms if atom.GetAtomicNum() == 7]
-        if len(nitrogen_atoms) != 2:
-            raise ValueError(f"Expected 2 nitrogen atoms in fragment, found {len(nitrogen_atoms)}")
-        
-        n1_idx = nitrogen_atoms[0].GetIdx()
-        n2_idx = nitrogen_atoms[1].GetIdx()
-        
-        # Get the original molecule's atoms
-        mol_atoms = initial_parsed_mol.GetAtoms()
-        o1_atom = mol_atoms[o1_idx]
-        o2_atom = mol_atoms[o2_idx]
-        
-        # Check that oxygens are only bound to carbon atoms
-        for o_idx, o_atom in [(o1_idx, o1_atom), (o2_idx, o2_atom)]:
-            for bond in o_atom.GetBonds():
-                other_atom_idx = bond.GetOtherAtomIdx(o_idx)
-                other_atom = mol_atoms[other_atom_idx]
-                if other_atom.GetAtomicNum() != 6:  # 6 is carbon
-                    raise ValueError(f"Oxygen at index {o_idx} is bound to non-carbon atom {other_atom.GetSymbol()} at index {other_atom_idx}")
-        
-        # Store the bonds that need to be recreated
-        o1_bonds = [(bond.GetOtherAtomIdx(o1_idx), bond.GetBondType()) 
-                    for bond in o1_atom.GetBonds()]
-        o2_bonds = [(bond.GetOtherAtomIdx(o2_idx), bond.GetBondType()) 
-                    for bond in o2_atom.GetBonds()]
-        
-        # Remove the oxygen atoms
-        emol.RemoveAtom(o1_idx)
-        emol.RemoveAtom(o2_idx)
-        
-        # Add the fragment to the molecule
-        combined_mol = Chem.CombineMols(initial_parsed_mol, fragment_mol)
-        emol = Chem.EditableMol(combined_mol)
-        
-        # Get the new indices after adding the fragment
-        # The fragment atoms will be at the end of the molecule
-        fragment_start_idx = len(mol_atoms)
-        new_n1_idx = fragment_start_idx + n1_idx
-        new_n2_idx = fragment_start_idx + n2_idx
-        
-        # Recreate the bonds for the first nitrogen (replacing greater_idx oxygen)
-        for bond_idx, bond_type in o1_bonds:
-            # Adjust bond_idx if it was affected by the removal
-            adjusted_bond_idx = bond_idx
-            if bond_idx > greater_idx:
-                adjusted_bond_idx -= 1
-            if bond_idx > lesser_idx:
-                adjusted_bond_idx -= 1
+            # Fallback: search for carbons that are not in the benzene ring
+            benzene_carbons = set()
+            for i in range(num_atoms_original, num_atoms_original + 6):  # First 6 atoms are benzene carbons
+                benzene_carbons.add(i)
             
-            emol.AddBond(adjusted_bond_idx, new_n1_idx, bond_type)
+            for i in range(num_atoms_original, combined_mol.GetNumAtoms()):
+                atom = combined_mol.GetAtomWithIdx(i)
+                if (atom.GetAtomicNum() == 6 and i not in benzene_carbons and 
+                    len(outer_carbon_indices) < 2):
+                    outer_carbon_indices.append(i)
         
-        # Recreate the bonds for the second nitrogen (replacing lesser_idx oxygen)
-        for bond_idx, bond_type in o2_bonds:
-            # Adjust bond_idx if it was affected by the removal
-            adjusted_bond_idx = bond_idx
-            if bond_idx > greater_idx:
-                adjusted_bond_idx -= 1
-            if bond_idx > lesser_idx:
-                adjusted_bond_idx -= 1
-            
-            emol.AddBond(adjusted_bond_idx, new_n2_idx, bond_type)
+        if len(outer_carbon_indices) != 2:
+            raise ValueError(f"Expected 2 outer carbons in fragment, found {len(outer_carbon_indices)}")
         
-        return emol.GetMol()
+        # Create a new EditableMol from the combined molecule
+        emol_combined = Chem.EditableMol(combined_mol)
+        
+        # Add bonds between nitrogens and outer carbons
+        # The nitrogens are at the original o1_idx and o2_idx positions
+        emol_combined.AddBond(o1_idx, outer_carbon_indices[0], Chem.BondType.SINGLE)
+        emol_combined.AddBond(o2_idx, outer_carbon_indices[1], Chem.BondType.SINGLE)
+        
+        return emol_combined.GetMol()
     
     @final
     def _outer_mod(self,
