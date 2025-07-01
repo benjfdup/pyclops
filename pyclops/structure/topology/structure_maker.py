@@ -97,10 +97,21 @@ class StructureMaker():
         Returns:
             Chem.Mol, the RDKit molecule
         """
-        # Use MDAnalysis's built-in RDKit conversion
-        ag = self._initial_universe.select_atoms("protein")
-        return ag.to_rdkit()
-    
+        # Create a temporary directory and file for the PDB
+        with tempfile.TemporaryDirectory() as temp_dir:
+            pdb_file = os.path.join(temp_dir, "temp_structure.pdb")
+            
+            # Save the universe to PDB file
+            self._initial_universe.atoms.write(pdb_file)
+            
+            # Read the PDB file with RDKit
+            mol = Chem.MolFromPDBFile(pdb_file, sanitize=True, removeHs=True)
+            
+            if mol is None:
+                raise ValueError("Failed to create RDKit molecule from PDB file")
+            
+            return mol
+        
     @staticmethod
     def _parse_rdkit_mol(
         mol: Chem.Mol,
@@ -115,7 +126,8 @@ class StructureMaker():
 
         for atom_idx in range(n_non_hydrogens):
             atom = mol.GetAtomWithIdx(atom_idx)
-            residue_idx: int = atom.GetPDBResidueInfo().GetResidueNumber()
+            residue_idx: int = atom.GetPDBResidueInfo().GetResidueNumber() - 1 # RDKit is 1-indexed for residues, 
+                                                                               # but we want 0-indexed for the residue index
             atom_name: str = atom.GetPDBResidueInfo().GetName().strip().upper()
             atom_key: AtomKey = (residue_idx, atom_name)
             residue_idx_atom_name_to_atom_idx[atom_key] = atom_idx
@@ -149,5 +161,7 @@ class StructureMaker():
         Make a structure given a ChemicalLoss.
         """
         if positions is not None:
-            self._set_positions(positions, self._chemical_loss_handler.units_factor)
+            self._set_positions(positions, 
+                                self._chemical_loss_handler.units_factor,
+                                )
         return self._make_structure(chemical_loss)

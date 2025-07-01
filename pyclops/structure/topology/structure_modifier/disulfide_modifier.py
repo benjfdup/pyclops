@@ -17,6 +17,7 @@ class DisulfideModifier(LossStructureModifier):
     _method = Disulfide._method
     
     def _mod_struct(self,
+                    initial_parsed_mol: Chem.Mol,
                     chemical_loss: ChemicalLoss,
                     mdtraj_atom_indexes_dict: AtomIndexDict,
                     rdkit_atom_indexes_dict: AtomIndexDict,
@@ -24,21 +25,19 @@ class DisulfideModifier(LossStructureModifier):
         """
         Modify the structure according to the corresponding ChemicalLoss.
         """
-        rdkit_mol = self._initial_parsed_mol.Copy()
+        emol = Chem.EditableMol(initial_parsed_mol)
         
-        mdtraj_idx_to_rdkit_idx = self._mdtraj_idx_to_rdkit_idx_dict(
-            mdtraj_atom_indexes_dict,
-            rdkit_atom_indexes_dict,
-        )
-        loss_atom_idxs = chemical_loss._atom_idxs
-        s1_idx_mdtraj = loss_atom_idxs['S1']
-        s2_idx_mdtraj = loss_atom_idxs['S2']
+        inverse_mdtraj_atom_indexes_dict = self._invert_dict(mdtraj_atom_indexes_dict)
+        s1_key = inverse_mdtraj_atom_indexes_dict[chemical_loss._atom_idxs['S1']]
+        s2_key = inverse_mdtraj_atom_indexes_dict[chemical_loss._atom_idxs['S2']]
 
-        s1_idx_rdkit = mdtraj_idx_to_rdkit_idx[s1_idx_mdtraj]
-        s2_idx_rdkit = mdtraj_idx_to_rdkit_idx[s2_idx_mdtraj]
+        s1_idx_rdkit = rdkit_atom_indexes_dict[s1_key]
+        s2_idx_rdkit = rdkit_atom_indexes_dict[s2_key]
         
         # Add the disulfide bond between the two sulfur atoms
-        rdkit_mol.AddBond(s1_idx_rdkit, s2_idx_rdkit, Chem.BondType.SINGLE)
-        Chem.SanitizeMol(rdkit_mol)  # Optional but recommended
+        emol.AddBond(s1_idx_rdkit, s2_idx_rdkit, order=Chem.rdchem.BondType.SINGLE)
+        new_mol = emol.GetMol()
 
-        return rdkit_mol
+        Chem.SanitizeMol(new_mol)  # Optional but recommended
+
+        return new_mol

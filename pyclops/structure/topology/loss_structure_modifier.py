@@ -27,23 +27,6 @@ class LossStructureModifier(ABC):
     
     @final
     @staticmethod
-    def _mdtraj_idx_to_rdkit_idx_dict(
-        mdtraj_atom_indexes_dict: AtomIndexDict,
-        rdkit_atom_indexes_dict: AtomIndexDict,
-        ) -> Dict[int, int]:
-        """
-        Returns a map from the mdtraj atom indexes to the rdkit atom indexes.
-        This should result in the omission of hydrogens. This is a helper method
-        for _mod_struct, to be used in its subclass implementations.
-        """
-        final_dict = {}
-        min_keyset = set(mdtraj_atom_indexes_dict.keys()) & set(rdkit_atom_indexes_dict.keys())
-        for key in min_keyset:
-            final_dict[mdtraj_atom_indexes_dict[key]] = rdkit_atom_indexes_dict[key]
-        return final_dict
-    
-    @final
-    @staticmethod
     def _invert_dict(
         original_dict: Dict,
     ) -> Dict:
@@ -62,6 +45,7 @@ class LossStructureModifier(ABC):
 
     @abstractmethod
     def _mod_struct(self,
+                    initial_parsed_mol: Chem.Mol,
                     chemical_loss: ChemicalLoss,
                     mdtraj_atom_indexes_dict: AtomIndexDict,
                     rdkit_atom_indexes_dict: AtomIndexDict,
@@ -72,6 +56,7 @@ class LossStructureModifier(ABC):
         internally by the `modify_structure` method.
 
         Args:
+            initial_parsed_mol: The initial parsed molecule.
             chemical_loss: The ChemicalLoss to modify the structure according to.
             mdtraj_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indices (int) in the ChemicalLossHandler.
             rdkit_atom_indexes_dict: A dictionary mapping from (residue_index: int, atom_name: str) to atom indexes (int) in the RDKit molecule.
@@ -109,7 +94,11 @@ class LossStructureModifier(ABC):
             The modified RDKit molecule.
         """
         self._validate_chemical_loss(chemical_loss)
-        final_rdkit_mol = self._mod_struct(chemical_loss, 
+        final_rdkit_mol = self._mod_struct(Chem.Mol(self._initial_parsed_mol), # clones the initial parsed molecule
+                                           # Note: we cannot use deepcopy here, as RDKit molecules are C++ objects
+                                           # under the hood. Special thanks to Dr. Richard Lewis: 
+                                           # https://sourceforge.net/p/rdkit/mailman/message/33652439/
+                                           chemical_loss, 
                                            mdtraj_atom_indexes_dict,
                                            rdkit_atom_indexes_dict,)
         Chem.SanitizeMol(final_rdkit_mol)

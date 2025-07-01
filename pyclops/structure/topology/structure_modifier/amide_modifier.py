@@ -16,6 +16,7 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
     """
 
     def _inner_mod(self,
+                   initial_parsed_mol: Chem.Mol,
                    oxygen_to_remove_idx: int,
                    carboxyl_carbon_idx: int,
                    amide_nitrogen_idx: int,
@@ -31,7 +32,7 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
         Returns:
             Modified RDKit molecule with amide bond formed
         """
-        initial_rdkit_mol = self._initial_parsed_mol.Copy()
+        initial_rdkit_mol = initial_parsed_mol
         
         # Remove the oxygen atom from the carboxyl group
         initial_rdkit_mol.RemoveAtom(oxygen_to_remove_idx)
