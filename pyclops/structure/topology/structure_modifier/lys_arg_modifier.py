@@ -1,3 +1,5 @@
+from typing import Optional
+
 from rdkit import Chem
 
 from ....core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
@@ -86,4 +88,49 @@ class LysArgModifier(LossStructureModifier):
         which nitrogen to use for the double bond, then calls `_inner_mod` to perform the actual
         structural modification.
         """
-        pass
+        inverse_mdtraj_atom_indexes_dict = self._invert_dict(mdtraj_atom_indexes_dict)
+
+        method_str, idxs_set = chemical_loss.resonance_key
+
+        arg_idx: Optional[int] = None
+        lys_idx: Optional[int] = None
+        for aa_i in idxs_set:
+            ca_key = (aa_i, 'CA')
+            ca_idx = rdkit_atom_indexes_dict[ca_key]
+            if initial_parsed_mol.GetAtomWithIdx(ca_idx).GetPDBResidueInfo().GetResidueName() == 'ARG':
+                arg_idx = aa_i
+            elif initial_parsed_mol.GetAtomWithIdx(ca_idx).GetPDBResidueInfo().GetResidueName() == 'LYS':
+                lys_idx = aa_i
+        if arg_idx is None or lys_idx is None:
+            raise ValueError(f"Could not find arginine or lysine in the molecule for the chemical loss {chemical_loss.resonance_key}")
+        
+        n1_idx = rdkit_atom_indexes_dict[(lys_idx, 'NZ')]
+
+        n2_key = inverse_mdtraj_atom_indexes_dict[chemical_loss._atom_idxs['N2']]
+        n2_idx = rdkit_atom_indexes_dict[n2_key]
+
+        n3_key = inverse_mdtraj_atom_indexes_dict[chemical_loss._atom_idxs['N3']]
+        n3_idx = rdkit_atom_indexes_dict[n3_key]
+
+        n4_idx = rdkit_atom_indexes_dict[(arg_idx, 'NE')]
+        c1_idx = rdkit_atom_indexes_dict[(arg_idx, 'CZ')]
+        
+        return self._inner_mod(initial_parsed_mol,
+                               n1_idx,
+                               n2_idx,
+                               n3_idx,
+                               c1_idx,
+                               n4_idx)
+    
+    def _mod_struct(self,
+                    initial_parsed_mol: Chem.Mol,
+                    chemical_loss: ChemicalLoss,
+                    mdtraj_atom_indexes_dict: AtomIndexDict,
+                    rdkit_atom_indexes_dict: AtomIndexDict,
+                    ) -> Chem.Mol:
+        """
+        """
+        return self._outer_mod(chemical_loss, 
+                               initial_parsed_mol,
+                               mdtraj_atom_indexes_dict, 
+                               rdkit_atom_indexes_dict)
