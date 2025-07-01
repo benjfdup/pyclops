@@ -2,6 +2,7 @@ from abc import ABCMeta
 from typing import final
 
 from rdkit import Chem
+from rdkit.Chem import AllChem
 
 from ..loss_structure_modifier import LossStructureModifier
 from ....core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
@@ -19,6 +20,16 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
     """
     _fragment: str = "c1cc(ccc1C)C" # the fragment to be added to the structure
     _fragment_rdkit_mol: Chem.Mol = Chem.MolFromSmiles(_fragment) # essentially a benzene ring with 2 exterior carbons.
+
+    # Generate 3D coordinates for the fragment at class level
+    if _fragment_rdkit_mol.GetNumConformers() == 0:
+        from rdkit.Chem import AllChem
+        # Add hydrogens temporarily for 3D generation
+        fragment_with_h = Chem.AddHs(_fragment_rdkit_mol)
+        # Generate 3D coordinates
+        AllChem.EmbedMolecule(fragment_with_h, randomSeed=42)
+        # Remove hydrogens to get back to original fragment
+        _fragment_rdkit_mol = Chem.RemoveHs(fragment_with_h)
 
     @property
     def fragment_rdkit_mol(self) -> Chem.Mol:
@@ -103,7 +114,60 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
         emol_combined.AddBond(o1_idx, outer_carbon_indices[0], Chem.BondType.SINGLE)
         emol_combined.AddBond(o2_idx, outer_carbon_indices[1], Chem.BondType.SINGLE)
         
-        return emol_combined.GetMol()
+        # Get the final molecule
+        final_mol = emol_combined.GetMol()
+        
+        # DEBUG: Check for zero-length vectors before returning
+        # self._debug_zero_vectors(final_mol, "final_mol")
+        
+        return final_mol
+    
+    def _debug_zero_vectors(self, mol: Chem.Mol, mol_name: str):
+        """
+        Debug function to identify atoms with zero-length vectors that cause normalization errors.
+        
+        Args:
+            mol: The molecule to check
+            mol_name: Name of the molecule for debugging output
+        """
+        print(f"\n=== DEBUG: Checking {mol_name} for zero-length vectors ===")
+        print(f"Number of atoms: {mol.GetNumAtoms()}")
+        print(f"Number of conformers: {mol.GetNumConformers()}")
+        
+        if mol.GetNumConformers() == 0:
+            print("WARNING: No conformers found - this will cause visualization issues!")
+            return
+        
+        conf = mol.GetConformer()
+        zero_vector_atoms = []
+        
+        for i in range(mol.GetNumAtoms()):
+            atom = mol.GetAtomWithIdx(i)
+            pos = conf.GetAtomPosition(i)
+            
+            # Check if position is at origin (0,0,0) or has very small coordinates
+            if (abs(pos.x) < 1e-6 and abs(pos.y) < 1e-6 and abs(pos.z) < 1e-6):
+                zero_vector_atoms.append((i, atom.GetSymbol(), pos))
+                print(f"  Atom {i} ({atom.GetSymbol()}): ZERO VECTOR at {pos}")
+            elif (abs(pos.x) < 1e-3 or abs(pos.y) < 1e-3 or abs(pos.z) < 1e-3):
+                print(f"  Atom {i} ({atom.GetSymbol()}): SMALL VECTOR at {pos}")
+        
+        if zero_vector_atoms:
+            print(f"  FOUND {len(zero_vector_atoms)} ATOMS WITH ZERO VECTORS!")
+            print("  These will cause 'Cannot normalize a zero length vector' errors")
+        else:
+            print("  No zero-length vectors found")
+        
+        # Check fragment atoms specifically
+        if mol_name == "final_mol":
+            num_atoms_original = mol.GetNumAtoms() - self.fragment_rdkit_mol.GetNumAtoms()
+            print(f"\n  Fragment atoms (indices {num_atoms_original} to {mol.GetNumAtoms()-1}):")
+            for i in range(num_atoms_original, mol.GetNumAtoms()):
+                atom = mol.GetAtomWithIdx(i)
+                pos = conf.GetAtomPosition(i)
+                print(f"    Fragment atom {i} ({atom.GetSymbol()}): {pos}")
+        
+        print("=" * 60)
     
     @final
     def _outer_mod(self,
