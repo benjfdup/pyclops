@@ -19,6 +19,7 @@ from ...core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict, Ato
 from ...core.loss_handler.chemical_loss_handler import ChemicalLossHandler
 from .utils import DEFAULT_MODIFIER_DICT
 from .loss_structure_modifier import LossStructureModifier
+from .structure_modifier.amide_modifier import Amide2TermModifier
 
 # Type aliases
 ArrayLike = Union[torch.Tensor, np.ndarray]
@@ -79,6 +80,9 @@ class StructureMaker():
         units_factor is the factor by which the positions are scaled 
         (e.g. positions * units_factor = positions_in_Angstroms)
 
+        Should be called calling the `_make_structure` method, as that removes atoms 
+        etc, hence ruining the indexing.
+
         Args:
             positions: ArrayLike, shape: [n_atoms, 3]
             units_factor: float, the factor by which the positions are scaled 
@@ -133,6 +137,29 @@ class StructureMaker():
             residue_idx_atom_name_to_atom_idx[atom_key] = atom_idx
 
         return residue_idx_atom_name_to_atom_idx
+    
+    @property
+    def initial_rdkit_mol(self) -> Chem.Mol:
+        """
+        A deep copy of the initial RDKit molecule.
+        """
+        return Chem.Mol(self._initial_rdkit_mol)
+    
+    def _remove_relevant_amber_caps(self,
+                                    chemical_loss: ChemicalLoss,
+                                    ) -> Chem.Mol:
+        """
+        Removes the relevant amber caps from the structure and returns a deep copy.
+
+        TODO: implement relevant logic here.
+
+        Args:
+            chemical_loss: The chemical loss object containing atom indices.
+
+        Returns:
+            Chem.Mol, the modified RDKit molecule
+        """
+        return self.initial_rdkit_mol
 
     def _make_structure(self, 
                         chemical_loss: ChemicalLoss,
@@ -147,7 +174,12 @@ class StructureMaker():
         except KeyError:
             raise ValueError(f"No modifier type found for chemical loss method: {chemical_loss.method}")
         
-        modifier = modifier_type(self._initial_rdkit_mol)
+        if issubclass(modifier_type, Amide2TermModifier):
+            init_mol = self._remove_relevant_amber_caps(chemical_loss)
+        else:
+            init_mol = self.initial_rdkit_mol
+        
+        modifier = modifier_type(init_mol)
         return modifier.modify_structure(chemical_loss, 
                                          self._mdtraj_atom_idxs_dict,
                                          self._rdkit_atom_idxs_dict,
