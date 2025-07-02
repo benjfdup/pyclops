@@ -5,6 +5,8 @@
 ██║        ██║   ╚██████╗███████╗╚██████╔╝██║     ███████║
 ╚═╝        ╚═╝    ╚═════╝╚══════╝ ╚═════╝ ╚═╝     ╚══════╝
 
+By the Knowles Lab @ the University of Cambridge
+
 MIT License
 
 Copyright (c) 2025 The Authors
