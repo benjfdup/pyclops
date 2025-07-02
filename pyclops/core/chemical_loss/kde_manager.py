@@ -24,6 +24,7 @@ class KDEManager:
         
         if device not in self._kde_cache[kde_file]:
             self._kde_cache[kde_file][device] = torch.load(kde_file, map_location=device) # TODO: move all tensors to the device
+            self._kde_cache[kde_file][device].device = device
         
         return self._kde_cache[kde_file][device]
     
