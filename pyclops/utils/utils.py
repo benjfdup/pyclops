@@ -1,6 +1,6 @@
 import torch
 
-def motif_loss(
+def motif_loss( # TODO: CHECK THIS! THIS WAS CODED BY CURSOR.
         pos: torch.Tensor, # TODO: speed up with torch.jit.script
         ref_pos: torch.Tensor, 
         tolerance: float = 0.0, 
@@ -45,57 +45,57 @@ def motif_loss(
     # its source can be found here:
     # https://hunterheidenreich.com/posts/kabsch_algorithm/
 
-    P = pos
-    Q = ref_pos
+    P = pos  # [batch_size, n_atoms, 3]
+    Q = ref_pos  # [n_atoms, 3]
     
-    # below code by Hunter Heidenreich
-    assert P.shape == Q.shape, "Matrix dimensions must match"
+    # Expand Q to match P's batch dimension for broadcasting
+    Q = Q.unsqueeze(0).expand(P.shape[0], -1, -1)  # [batch_size, n_atoms, 3]
 
     # Compute centroids
-    centroid_P = torch.mean(P, dim=1, keepdims=True)  # Bx1x3
-    centroid_Q = torch.mean(Q, dim=1, keepdims=True)  #
+    centroid_P = torch.mean(P, dim=1, keepdims=True)  # [batch_size, 1, 3]
+    centroid_Q = torch.mean(Q, dim=1, keepdims=True)  # [batch_size, 1, 3]
 
     # Optimal translation
-    t = centroid_Q - centroid_P  # Bx1x3
-    t = t.squeeze(1)  # Bx3
+    t = centroid_Q - centroid_P  # [batch_size, 1, 3]
+    t = t.squeeze(1)  # [batch_size, 3]
 
     # Center the points
-    p = P - centroid_P  # BxNx3
-    q = Q - centroid_Q  # BxNx3
+    p = P - centroid_P  # [batch_size, n_atoms, 3]
+    q = Q - centroid_Q  # [batch_size, n_atoms, 3]
 
     # Compute the covariance matrix
-    H = torch.matmul(p.transpose(1, 2), q)  # Bx3x3
+    H = torch.matmul(p.transpose(1, 2), q)  # [batch_size, 3, 3]
 
     # SVD
-    U, S, Vt = torch.linalg.svd(H)  # Bx3x3
+    U, S, Vt = torch.linalg.svd(H)  # [batch_size, 3, 3]
 
     # Validate right-handed coordinate system
     if allow_flips:
-        d = torch.det(torch.matmul(Vt.transpose(1, 2), U.transpose(1, 2)))  # B
+        d = torch.det(torch.matmul(Vt.transpose(1, 2), U.transpose(1, 2)))  # [batch_size]
         flip = d < 0.0
         if flip.any().item():
             Vt[flip, -1] *= -1.0
 
     # Optimal rotation
-    R = torch.matmul(Vt.transpose(1, 2), U.transpose(1, 2))
+    R = torch.matmul(Vt.transpose(1, 2), U.transpose(1, 2))  # [batch_size, 3, 3]
     # above code from Hunter Heidenreich
 
     # Align positions using optimal rotation
-    aligned_positions = torch.matmul(p, R.transpose(1, 2))  # [B, N, 3]
+    aligned_positions = torch.matmul(p, R.transpose(1, 2))  # [batch_size, n_atoms, 3]
 
     # Compute per-atom squared deviation
-    per_atom_sq_dev = torch.sum((aligned_positions - q) ** 2, dim=-1)  # [B, N]
-    per_atom_dev = torch.sqrt(per_atom_sq_dev)  # [B, N] - Convert to absolute distances
+    per_atom_sq_dev = torch.sum((aligned_positions - q) ** 2, dim=-1)  # [batch_size, n_atoms]
+    per_atom_dev = torch.sqrt(per_atom_sq_dev)  # [batch_size, n_atoms] - Convert to absolute distances
 
     # Apply soft tolerance: Ignore deviations ≤ tolerance, quadratic penalty for larger deviations
-    error = torch.clamp(per_atom_dev - tolerance, min=0.0)  # [B, N]
+    error = torch.clamp(per_atom_dev - tolerance, min=0.0)  # [batch_size, n_atoms]
     penalty = error ** 2  # Quadratic penalty for smooth gradient
 
     # Compute mean loss across atoms
-    msd = torch.sum(penalty, dim=1) / P.shape[1]  # [B]
+    msd = torch.sum(penalty, dim=1) / P.shape[1]  # [batch_size]
 
     # Compute RMSD or return squared loss
-    loss = msd if squared else torch.sqrt(msd)  # [B]
+    loss = msd if squared else torch.sqrt(msd)  # [batch_size]
 
     return loss
 
