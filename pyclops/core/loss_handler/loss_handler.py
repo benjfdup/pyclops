@@ -14,7 +14,7 @@ class LossHandler(ABC):
             positions * units_factor = Angstroms
         """
         self._validate_inputs(units_factor)
-        self._units_factor = units_factor
+        self._units_factor = float(units_factor)
 
     def _validate_inputs(self, units_factor: float) -> None:
         """Validate the inputs to the LossHandler."""
@@ -38,5 +38,11 @@ class LossHandler(ABC):
         """
         Evaluate the loss for a batch of atom positions.
         Must be implemented by subclasses.
+
+        Args:
+            positions: Tensor of shape [batch_size, n_atoms, 3] representing the positions of the atoms.
+
+        Returns:
+            torch.Tensor: The loss, of shape [batch_size, ]
         """
         raise NotImplementedError("Subclasses must implement method _eval_loss")
