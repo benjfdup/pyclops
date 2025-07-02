@@ -317,6 +317,7 @@ class ChemicalLoss(ABC):
         │   ├── Find donor atoms
         │   ├── Find acceptor atoms  
         │   ├── Skip if incomplete
+        │   ├── Within a pair, skip any tetrahedra that have duplicate atoms for the different vertexes
         │   └── Generate all combinations
         └── Return results
 
@@ -439,6 +440,7 @@ class ChemicalLoss(ABC):
     ) -> list['ChemicalLoss']:
         """
         Generate all possible ChemicalLoss instances for a given set of available atoms.
+        Automatically skips any combinations that have duplicate atoms for different keys.
         
         Args:
             available_atoms: Dictionary mapping atom keys to lists of valid atom indices
@@ -460,6 +462,8 @@ class ChemicalLoss(ABC):
         
         # Generate a ChemicalLoss instance for each possible atom combination
         for atom_indices_combo in product(*atom_options):
+            if len(set(atom_indices_combo)) != len(atom_indices_combo):
+                continue
             # Build atom_idxs dict for this specific combination
             atom_idxs = {
                 atom_keys[i]: atom_indices_combo[i] 
