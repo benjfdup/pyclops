@@ -209,4 +209,3 @@ class KernelDensity(nn.Module):
         X = self.bandwidth * torch.randn(n_samples, data.shape[1]) + data[idxs]
 
         return ensure_two_dimensional(X)
-    

@@ -441,11 +441,11 @@ class ChemicalLossHandler(LossHandler):
             # Evaluate KDE PDF at the distances
             # Reshape to [n_batch * n_loss_subset, 6] for KDE evaluation
             n_loss_subset = distances.shape[1]
-            distances_flat = distances.view(-1, 6) # shape [n_batch * n_loss_subset, 6]
+            distances_flat = distances.reshape(-1, 6) # shape [n_batch * n_loss_subset, 6]
             
             # Evaluate KDE and reshape back
             kde_values_flat = kde.score_samples(distances_flat) # shape [n_batch * n_loss_subset, ]
-            kde_values = kde_values_flat.view(n_batch, n_loss_subset) # shape [n_batch, n_loss_subset]
+            kde_values = kde_values_flat.reshape(n_batch, n_loss_subset) # shape [n_batch, n_loss_subset]
             
             # Store results in raw_losses at the appropriate indices
             raw_losses[:, original_indices] = kde_values # shape [n_batch, n_loss_subset] -> [n_batch, n_losses] at indices

@@ -1,19 +1,12 @@
+import torch
 from pyclops import ChemicalLossHandler
-from pyclops.structure import StructureMaker
 
-chig_pdb_file = '/Users/bendupontjr/mphil_files/all_mphil_code/pyclops/examples/pdbs/chignolin.pdb'
+chig_pdb = "/Users/bendupontjr/mphil_files/all_mphil_code/pyclops/examples/pdbs/chignolin.pdb"
+n_atoms = 166
+n_batch = 10
 
-chem_loss_handler = ChemicalLossHandler.from_pdb_file(chig_pdb_file, units_factor = 1.0)
+chem_loss_handler = ChemicalLossHandler.from_pdb_file(chig_pdb, units_factor = 1.0)
 
-print(chem_loss_handler.summary)
+positions = torch.randn(n_batch,n_atoms, 3)
 
-glu_cterm = chem_loss_handler.chemical_losses[-2]
-
-struct_mkr = StructureMaker(chem_loss_handler)
-
-mol = struct_mkr.make_structure(glu_cterm)
-
-#AllChem.EmbedMolecule(mol, AllChem.ETKDG())
-#AllChem.MMFFOptimizeMolecule(mol)
-
-mol
+chem_loss_handler(positions)
