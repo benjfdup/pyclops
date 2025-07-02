@@ -9,4 +9,6 @@ chem_loss_handler = ChemicalLossHandler.from_pdb_file(chig_pdb, units_factor = 1
 
 positions = torch.randn(n_batch,n_atoms, 3)
 
-chem_loss_handler(positions)
+print(chem_loss_handler(positions))
+
+print(chem_loss_handler._call_explicit(positions))

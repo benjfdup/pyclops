@@ -191,7 +191,6 @@ class ChemicalLoss(ABC):
     
     # methods
     @final
-    @torch.jit.script
     def _compute_distances(self, 
                            positions: torch.Tensor, # [n_batch, n_atoms, 3]
                            vertex_indices: torch.Tensor, # [4]
