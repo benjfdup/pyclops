@@ -1,3 +1,5 @@
+from abc import final
+
 from typing import Optional
 
 from rdkit import Chem
@@ -6,6 +8,7 @@ from ....core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
 from ....losses.lys_arg import LysArg
 from ..loss_structure_modifier import LossStructureModifier
 
+@final
 class LysArgModifier(LossStructureModifier):
     """
     Class for lysine-arginine chemical interactions.
