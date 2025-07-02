@@ -1,6 +1,4 @@
-from abc import final
-
-from typing import Optional
+from typing import Optional, final
 
 from rdkit import Chem
 

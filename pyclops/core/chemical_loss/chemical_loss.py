@@ -85,6 +85,11 @@ class ChemicalLoss(ABC):
         # check that the atom keys are integers
         if not all(isinstance(val, int) for val in atom_idxs.values()):
             raise ValueError("All atom_idxs values must be integers")
+        # check that the atom values are unique
+        if len(set(atom_idxs.values())) != len(atom_idxs.values()):
+            raise ValueError("All atom_idxs values must be unique")
+        if len(atom_idxs.keys()) != len(self._atom_idxs_keys):
+            raise ValueError(f"Expected 4 atom keys, got {len(atom_idxs.keys())}")
         # check that the temperature is a positive float
         if temp <= 0.0:
             raise ValueError("Temperature must be a positive float")
