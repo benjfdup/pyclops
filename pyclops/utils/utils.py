@@ -1,11 +1,12 @@
 import torch
 
-def motif_loss(pos: torch.tensor, # TODO: speed up with torch.jit.script
-          ref_pos: torch.tensor, 
-          tolerance: float = 0.0, 
-          squared: bool = False,
-          allow_flips: bool = False,
-          ):
+def motif_loss(
+        pos: torch.Tensor, # TODO: speed up with torch.jit.script
+        ref_pos: torch.Tensor, 
+        tolerance: float = 0.0, 
+        squared: bool = False,
+        allow_flips: bool = False,
+        ):
     
     """
     Computes a rotationally and translationally invariant structural deviation loss.
@@ -139,11 +140,11 @@ def soft_max(inputs: torch.Tensor, alpha: float = 3.0) -> torch.Tensor:
     '''
     return soft_min(inputs, alpha = alpha)
 
-def _compute_signed_tetrahedral_volume( # will be useful for chirality verification.
-    a1: torch.tensor,  # shape: [n_batch, n_tetrahedron, 3] or [n_batch, 3]
-    a2: torch.tensor,
-    a3: torch.tensor,
-    a4: torch.tensor,
+def compute_signed_tetrahedral_volume( # will be useful for chirality verification.
+    a1: torch.Tensor,  # shape: [n_batch, n_tetrahedron, 3] or [n_batch, 3]
+    a2: torch.Tensor,
+    a3: torch.Tensor,
+    a4: torch.Tensor,
 ):
     '''
     Computes the signed volume of each tetrahedron in parallel over
