@@ -428,8 +428,8 @@ class ChemicalLossHandler(LossHandler):
         
         # Step 2: For each KDE group, slice distances and evaluate PDF (FUNCTIONALITY UNCHANGED)
         for kde_idx, kde in enumerate(self._kde_list):
-            # Get the original indices for this KDE group (for storing results)
-            original_indices, _ = self._kde_groups[kde]
+            # Get the original chemical loss indices for this KDE group (for storing results)
+            original_indices, _ = self._kde_groups[kde] # [n_loss_subset, ]
             
             # Slice the pre-computed distances for this KDE group
             start_idx = self._kde_start_indices[kde_idx]

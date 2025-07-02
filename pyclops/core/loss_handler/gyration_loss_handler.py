@@ -11,9 +11,6 @@ class GyrationLossHandler(LossHandler):
     @property
     def squared(self) -> bool:
         return self._squared
-    @squared.setter
-    def squared(self, new_squared: bool):
-        self._squared = new_squared
     
     def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
         """
