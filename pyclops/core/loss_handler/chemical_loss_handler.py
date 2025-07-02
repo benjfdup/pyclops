@@ -68,6 +68,8 @@ class ChemicalLossHandler(LossHandler):
                       pdb_file: PathLike,
                       units_factor: float,
                       strategies: Optional[StrategySet] = None,
+                      weights: Optional[WeightDict] = None,
+                      offsets: Optional[OffsetDict] = None,
                       temp: float = 1.0,
                       alpha: float = -3.0,
                       mask: Optional[MaskSet] = None,
@@ -78,7 +80,14 @@ class ChemicalLossHandler(LossHandler):
         Initialize a ChemicalLossHandler from a PDB file.
         """
         traj = md.load_pdb(pdb_file)
-        return cls(traj, units_factor, strategies=strategies, temp=temp, alpha=alpha, mask=mask, device=device, debug=debug)
+        return cls(traj, 
+                   units_factor, 
+                   strategies=strategies, 
+                   weights=weights, 
+                   offsets=offsets, 
+                   temp=temp, 
+                   alpha=alpha, 
+                   mask=mask, device=device, debug=debug)
 
     def _validate_chem_loss_handler_inputs(
             self,
@@ -222,7 +231,7 @@ class ChemicalLossHandler(LossHandler):
         """
         Initialize the resonance groups for the ChemicalLossHandler.
         Makes self._resonance_groups to be a tensor of shape [n_losses, ] and contains which group each
-        loss belongs to.
+        loss belongs to. Assumes that the resonance keys are sorted lexicographically.
         """
         resonance_groups = torch.zeros(len(self._chemical_losses), dtype=torch.long, device=self._device)
         
@@ -230,10 +239,13 @@ class ChemicalLossHandler(LossHandler):
         prev_key = None
 
         for i in range(self.n_losses):
+            # Use the same key as the sorting algorithm for consistency
             resonance_key = self._chemical_losses[i].resonance_key
-            if resonance_key != prev_key:
+            current_key = (resonance_key[0], tuple(sorted(resonance_key[1])))
+            
+            if current_key != prev_key:
                 tag += 1
-                prev_key = resonance_key
+                prev_key = current_key
             resonance_groups[i] = tag
         self._resonance_groups = resonance_groups
 
@@ -343,7 +355,7 @@ class ChemicalLossHandler(LossHandler):
         # Create ordered list of KDE objects for consistent indexing
         # _kde_list: List[KernelDensity] - Ordered list of KDE objects for consistent indexing
         # kde_list[k] = the actual KDE object for group k (matches kde_start_indices indexing)
-        self._kde_list = list(self._kde_groups.keys())
+        self._kde_list = tuple(self._kde_groups.keys())
 
     @property
     def topology(self) -> md.Topology:
@@ -458,8 +470,9 @@ class ChemicalLossHandler(LossHandler):
             group_mask = (self._resonance_groups == group_idx) # shape [n_losses, ]
             group_losses = raw_losses[:, group_mask] # shape [n_batch, n_group_members]
             
-            # Take minimum over the group
-            resonance_losses[:, group_idx] = torch.min(group_losses, dim=1)[0] # shape [n_batch, ]
+            # Take what will become the minimum over the group 
+            # (which is the maximum of the raw losses since we multiple by a negative number)
+            resonance_losses[:, group_idx] = torch.max(group_losses, dim=1)[0] # shape [n_batch, ]
         
         # Step 3.5: Apply temp and KB to the resonance losses
         tempered_losses = -KB * self._temp * resonance_losses
@@ -467,7 +480,7 @@ class ChemicalLossHandler(LossHandler):
         # Step 4: Apply weight and offset tensors 
         weighted_losses = self._weight_tensor.unsqueeze(0) * tempered_losses + self._offset_tensor.unsqueeze(0) # shape [n_batch, n_resonance_groups]
         
-        # Step 5: Sum to get final loss
+        # Step 5: Soft minimum across all losses
         final_loss = soft_min(weighted_losses, alpha=self._alpha) # shape [n_batch, ]
         
         return final_loss
@@ -475,18 +488,21 @@ class ChemicalLossHandler(LossHandler):
     def _eval_loss_explicit(self, positions: torch.Tensor) -> torch.Tensor:
         """
         Directly computes the loss, without exploiting the parallelization of the loss computation.
-        This will be much slower than the optimized version, but it is useful for debugging and testing.
+        This will be slower than the optimized version, but it is useful for debugging and testing.
         """
         n_batch = positions.shape[0]
         losses = torch.zeros(n_batch, self.n_losses, dtype=torch.float, device=self._device) # shape [n_batch, n_losses]
         
-        for i in range(len(self._chemical_losses)):
+        for i in range(self.n_losses):
             loss = self._chemical_losses[i]
             loss_values = loss(positions)
             losses[:, i] = loss_values
         
         # Step 3: Take minimum value over each resonance group
-        resonance_losses = torch.zeros(n_batch, self.n_resonance_groups, dtype=torch.float, device=self._device) # shape [n_batch, n_resonance_groups]
+        resonance_losses = torch.zeros(n_batch, 
+                                       self.n_resonance_groups, 
+                                       dtype=torch.float, 
+                                       device=self._device) # shape [n_batch, n_resonance_groups]
         
         for group_idx in range(self.n_resonance_groups):
             # Find all losses belonging to this resonance group
@@ -495,7 +511,7 @@ class ChemicalLossHandler(LossHandler):
             
             # Take minimum over the group
             resonance_losses[:, group_idx] = torch.min(group_losses, dim=1)[0] # shape [n_batch, ]
-        
+            
         # Step 5: Take a soft minimum across all losses
         final_loss = soft_min(resonance_losses, alpha=self._alpha) # shape [n_batch, ]
         
@@ -515,42 +531,7 @@ class ChemicalLossHandler(LossHandler):
         n_batch = positions.shape[0]
         raw_losses = torch.zeros(n_batch, self.n_losses, dtype=torch.float, device=self._device) # shape [n_batch, n_losses]
         
-        # Step 1: Compute ALL distances at once for efficiency (NEW OPTIMIZATION)
-        # This replaces individual _compute_distances calls inside the loop
-        all_distances = self._compute_distances(positions, self._all_vertices) # shape [n_batch, total_losses, 6]
-        
-        # Step 2: For each KDE group, slice distances and evaluate PDF (FUNCTIONALITY UNCHANGED)
-        for kde_idx, kde in enumerate(self._kde_list):
-            # Get the original indices for this KDE group (for storing results)
-            original_indices, _ = self._kde_groups[kde]
-            
-            # Slice the pre-computed distances for this KDE group
-            start_idx = self._kde_start_indices[kde_idx]
-            length = self._kde_lengths[kde_idx]
-            end_idx = start_idx + length
-            distances = all_distances[:, start_idx:end_idx, :] # shape [n_batch, n_loss_subset, 6]
-            
-            # Rest is IDENTICAL to original implementation
-            # Evaluate KDE PDF at the distances
-            # Reshape to [n_batch * n_loss_subset, 6] for KDE evaluation
-            n_loss_subset = distances.shape[1]
-            distances_flat = distances.view(-1, 6) # shape [n_batch * n_loss_subset, 6]
-            
-            # Evaluate KDE and reshape back
-            kde_values_flat = kde.score_samples(distances_flat) # shape [n_batch * n_loss_subset, ]
-            kde_values = kde_values_flat.view(n_batch, n_loss_subset) # shape [n_batch, n_loss_subset]
-            
-            # Store results in raw_losses at the appropriate indices
-            raw_losses[:, original_indices] = kde_values # shape [n_batch, n_loss_subset] -> [n_batch, n_losses] at indices
-
-        # Step 3.5: Apply temp and KB to the raw losses
-        tempered_losses = -KB * self._temp * raw_losses
-        
-        weighted_losses = tempered_losses * self._full_weight_tensor.unsqueeze(0) + self._full_offset_tensor.unsqueeze(0) # shape [n_batch, n_losses]
-        
-        # Find the index of the smallest loss for each batch
-        smallest_loss_indices = torch.argmin(weighted_losses, dim=1) # shape [n_batch, ]
-        return smallest_loss_indices
+        raise NotImplementedError("Not implemented yet. Have to fix some bugs first.")
     
     def _get_smallest_loss(self, positions: torch.Tensor) -> Tuple[ChemicalLoss, ...]:
         """
