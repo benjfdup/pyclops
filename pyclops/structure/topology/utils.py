@@ -25,6 +25,8 @@ from .structure_modifier.cysteine_carbo_modifier import (
     CysCTermModifier,
 )
 from .structure_modifier.disulfide_modifier import DisulfideModifier
+from .structure_modifier.lys_tyr_modifier import LysTyrModifier
+from .structure_modifier.lys_arg_modifier import LysArgModifier
 
 DEFAULT_MODIFIER_DICT: Dict[str, Type[LossStructureModifier]] = {
     # amide losses
@@ -52,4 +54,10 @@ DEFAULT_MODIFIER_DICT: Dict[str, Type[LossStructureModifier]] = {
 
     # disulfide losses
     DisulfideModifier._method: DisulfideModifier,
+
+    # lysine-tyrosine losses
+    LysTyrModifier._method: LysTyrModifier,
+
+    # lysine-arginine losses
+    LysArgModifier._method: LysArgModifier,
 }
