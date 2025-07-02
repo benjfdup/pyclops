@@ -528,10 +528,12 @@ class ChemicalLossHandler(LossHandler):
         Get the index of the smallest loss per batch.
         Returns a tensor of shape [n_batch, ] and contains the index of the smallest loss for each batch.
         """
-        n_batch = positions.shape[0]
-        raw_losses = torch.zeros(n_batch, self.n_losses, dtype=torch.float, device=self._device) # shape [n_batch, n_losses]
-        
-        raise NotImplementedError("Not implemented yet. Have to fix some bugs first.")
+        # efficiency doesnt matter so much here, so I will just use the explicit version
+        explicit_losses = self._call_explicit(positions)
+
+        # find the index of the smallest loss for each batch
+        smallest_loss_indices = torch.argmin(explicit_losses, dim=1) # shape [n_batch, ]
+        return smallest_loss_indices
     
     def _get_smallest_loss(self, positions: torch.Tensor) -> Tuple[ChemicalLoss, ...]:
         """
