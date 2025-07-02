@@ -1,4 +1,4 @@
-## PyCLOPS - a Python Cyclic Loss for the Optimization of Peptide Structures 👁️ 🧬
+## 👁️ PyCLOPS - a Python Cyclic Loss for the Optimization of Peptide Structures 🧬
 
 ### Todos:
 
