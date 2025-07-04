@@ -5,7 +5,7 @@
 smiles: "C(=O)(NC)C"
 
 # Directory where all output files will be saved (trajectories, PDB files, CSV data)
-save_dir: "/Users/bendupontjr/mphil_files/all_mphil_code/pyclops/pyclops/losses/kdes/_records/_simulations/amide"
+save_dir: "/home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/pyclops/pyclops/losses/kdes/_records/_simulations/amide"
 
 # Number of seeds for multiple simulations (will create range(seeds))
 seeds: 10
