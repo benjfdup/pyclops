@@ -17,4 +17,4 @@ checkpoint_interval: 100
 printout_interval: 10000
 
 # Total number of MD steps to run
-steps: 500000 
+steps: 5000000
