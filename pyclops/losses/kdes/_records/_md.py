@@ -125,7 +125,7 @@ def smiles_to_pdb(smiles: str, filename: str) -> None:
     """ Turns a SMILES string into a PDB file (written to current working directory). """
     m = Chem.MolFromSmiles(smiles)
     mh = Chem.AddHs(m)
-    AllChem.EmbedMolecule(mh)
+    AllChem.EmbedMolecule(mh, randomSeed=seed)
     Chem.MolToPDBFile(mh, filename)
 
 class SubsettingDCDReporter(object): # Taken from OpenMM Github (doesnt seem to be on the conda package)
@@ -307,7 +307,7 @@ for seed in tqdm.tqdm(seeds):
     # set the reporters collecting the MD output.
     simulation.reporters = []
 
-    simulation.reporters.append(DCDReporter(traj_file, checkpoint_interval)) # replace this with a subsetting one
+    #simulation.reporters.append(DCDReporter(traj_file, checkpoint_interval)) # replace this with a subsetting one
     simulation.reporters.append(
         SubsettingDCDReporter(
             file = no_water_traj_file,
