@@ -1,0 +1,6 @@
+amide: C(=O)(NC)C
+carboxylic-carbo: C(=O)(C)NCc1ccc(cc1)CNC(=O)C
+cys-carboxyl: CSCC(=O)C
+disulfide: C(SSCC)C
+lys-arg: N1(C)CN=C(NC1)NC
+lys-tyr: CNCc1c(O)ccc(c1)C

@@ -5,7 +5,7 @@
 smiles: "CNCc1c(O)ccc(c1)C"
 
 # Directory where all output files will be saved (trajectories, PDB files, CSV data)
-save_dir: "/home/bfd21/rds/hpc-work/tbg/jobs/md-jobs/Lys-Tyr/results"
+save_dir: "/Users/bendupontjr/mphil_files/all_mphil_code/pyclops/pyclops/losses/kdes/_records/_simulation_toys/amide"
 
 # Number of seeds for multiple simulations (will create range(seeds))
 seeds: 10
