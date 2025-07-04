@@ -2,45 +2,30 @@
 This script generates KDE models for the chemical losses in PyCLOPS, based on the data.
 This basically just fits KDEs to the data. It is here solely for record-keeping purposes.
 """
-
-import torch
 from typing import Dict
 import os
 
-#import numpy as np
+import torch
 import mdtraj as md
 
-#from torchkde.modules import KernelDensity
-from pathlib import Path
-import sys
-
-# Path to the *parent* of 'torchkde'
-pyclops2_root = Path("/home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/new_kdes")
-sys.path.insert(0, str(pyclops2_root))
-
-# Now do a normal import
 from pyclops.torchkde.modules import KernelDensity
 
-mol_names = ['Carboxylic-Carbo', 'Cys-Arg', 'Cys-Carboxyl', 'Disulfide', 'Lys-Arg', 'Lys-Tyr', 'Sulfur-Mediated-Amide', 'Amide']
+mol_names = ['Carboxylic-Carbo', 'Cys-Arg', 'Cys-Carboxyl', 'Disulfide', 'Lys-Arg', 'Lys-Tyr', 'Amide']
 
 mol_tetra_dict = {
-        'Lys-Tyr': ['N1', 'C3', 'O1', 'C4'],
-        'Lys-Arg': ['N1', 'N2', 'N3', 'N4'],
-        'Disulfide': ['S1', 'S2', 'C1', 'C2'],
-        'Cys-Arg': ['S1', 'C2', 'C3', 'O1'],
+        'Amide': ['N1', 'C1', 'O1', 'C2'],
         'Carboxylic-Carbo': ['N1', 'N2', 'C1', 'C11'],
         'Cys-Carboxyl': ['S1', 'C3', 'O1', 'C1'],
-        'Sulfur-Mediated-Amide': ['N1', 'C3', 'O1', 'C2'],
-        'Amide': ['N1', 'C1', 'O1', 'C2'],
+        'Disulfide': ['S1', 'S2', 'C1', 'C2'],
+        'Lys-Arg': ['N1', 'N2', 'N3', 'N4'],
+        'Lys-Tyr': ['N1', 'C3', 'O1', 'C4'],
     }
 
 mol_tetra_vals: Dict[str, torch.Tensor] = {}
 
 for mol_name in mol_names:
-    ### CHANGE vvv ###
     stride: int = 1
-    frac_to_exclude: float = 0.2
-    ### CHANGE ^^^ ###
+    frac_to_exclude: float = 0.2 # initial fraction to exclude from the start of the trajectory
 
     mol_dir = os.path.join('/home/bfd21/rds/hpc-work/tbg/jobs/md-jobs', mol_name)
     results_dir = os.path.join(mol_dir, 'results/')
@@ -82,23 +67,15 @@ for mol_name in mol_names:
     print(f'mol_name: {mol_name}')
     print(f"Computed {distances.shape[1]} edge distances across {distances.shape[0]} frames.")
     print("Example (first frame):", distances[0])
-    #print(f'type:" {type(distances)}')
-
-    #distances = torch.from_numpy(np.array(distances).astype('float'))
 
     mol_tetra_vals[mol_name] = distances
 
 for mol_name in mol_names:
-    # I will need to play with this bandwidth....
     kde = KernelDensity(bandwidth=1.0, kernel='cauchy') # bandwidth is in angstroms
-    #X = torch.from_numpy(mol_tetra_vals[mol_name]).to('cuda')
     X = torch.from_numpy(mol_tetra_vals[mol_name]).to('cuda')
 
-    #print(X.device)
 
     kde.fit(X)
 
-    #print(f"KDE fitted with bandwidth {kde.bandwidth}")
     save_path = os.path.join(os.path.dirname(__file__), f'{mol_name}_kde.pt')
     torch.save(kde, save_path)
-    #print('Saved!')
