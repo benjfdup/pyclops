@@ -2,10 +2,10 @@
 # Usage: python _md.py --config md_config_example.yaml
 
 # SMILES string of the molecule to simulate
-smiles: "N1(C)CN=C(NC1)NC"
+smiles: "C(SSCC)C"
 
 # Directory where all output files will be saved (trajectories, PDB files, CSV data)
-save_dir: "/Users/bendupontjr/mphil_files/all_mphil_code/pyclops/pyclops/losses/kdes/_records/_simulations/lys-arg"
+save_dir: "/Users/bendupontjr/mphil_files/all_mphil_code/pyclops/pyclops/losses/kdes/_records/_simulations/disulfide"
 
 # Number of seeds for multiple simulations (will create range(seeds))
 seeds: 10
@@ -17,4 +17,4 @@ checkpoint_interval: 100
 printout_interval: 10000
 
 # Total number of MD steps to run
-steps: 500000 
+steps: 5000000 
