@@ -9,16 +9,36 @@ import torch
 import mdtraj as md
 
 from pyclops.torchkde.modules import KernelDensity
+from pyclops.losses.amide_losses import Amide
+from pyclops.losses.carboxylic_carbo import CarboxylicCarbo
+from pyclops.losses.cysteine_carbo import CysteineCarbo
+from pyclops.losses.disulfide import Disulfide
+from pyclops.losses.lys_arg import LysArg
+from pyclops.losses.lys_tyr import LysTyr
 
-mol_names = ['Carboxylic-Carbo', 'Cys-Arg', 'Cys-Carboxyl', 'Disulfide', 'Lys-Arg', 'Lys-Tyr', 'Amide']
+
+mol_names = ['Amide', 'Carboxylic-Carbo', 'Cys-Arg', 'Cys-Carboxyl', 'Disulfide', 'Lys-Arg', 'Lys-Tyr']
+
+mol_verts = {
+    'Amide': Amide._atom_idxs_keys,
+    'Carboxylic-Carbo': CarboxylicCarbo._atom_idxs_keys,
+    'Cys-Carboxyl': CysteineCarbo._atom_idxs_keys,
+    'Disulfide': Disulfide._atom_idxs_keys,
+    'Lys-Arg': LysArg._atom_idxs_keys,
+    'Lys-Tyr': LysTyr._atom_idxs_keys,
+}
+
+verts_to_pdb_atoms = {
+    Amide._atom_idxs_keys: ['N1', 'C1', 'O1', 'C2'],
+    CarboxylicCarbo._atom_idxs_keys: ['N1', 'N2', 'C1', 'C11'],
+    CysteineCarbo._atom_idxs_keys: ['S1', 'C3', 'O1', 'C1'],
+    Disulfide._atom_idxs_keys: ['S1', 'S2', 'C1', 'C2'],
+    LysArg._atom_idxs_keys: ['N1', 'N2', 'N3', 'N4'],
+    LysTyr._atom_idxs_keys: ['N1', 'C3', 'O1', 'C4'],
+}
 
 mol_tetra_dict = {
-        'Amide': ['N1', 'C1', 'O1', 'C2'],
-        'Carboxylic-Carbo': ['N1', 'N2', 'C1', 'C11'],
-        'Cys-Carboxyl': ['S1', 'C3', 'O1', 'C1'],
-        'Disulfide': ['S1', 'S2', 'C1', 'C2'],
-        'Lys-Arg': ['N1', 'N2', 'N3', 'N4'],
-        'Lys-Tyr': ['N1', 'C3', 'O1', 'C4'],
+        key: verts_to_pdb_atoms[mol_verts[key]] for key in mol_verts.keys()
     }
 
 mol_tetra_vals: Dict[str, torch.Tensor] = {}
