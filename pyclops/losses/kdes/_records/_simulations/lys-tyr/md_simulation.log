@@ -1,0 +1,39 @@
+2025-07-05 03:19:52 | INFO     | __main__:<module>:70 - ----------========== Starting MD ==========----------
+2025-07-05 03:19:52 | INFO     | __main__:<module>:217 - Generating forcefield for SMILES: CNCc1c(O)ccc(c1)C
+2025-07-05 03:19:52 | INFO     | __main__:<module>:219 - Generating initial PDB structure and saving to /home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/pyclops/pyclops/losses/kdes/_records/_simulations/lys-tyr
+2025-07-05 03:20:09 | INFO     | __main__:<module>:222 - Creating OpenMM system with PME and 1nm cutoff
+2025-07-05 03:20:20 | INFO     | __main__:<module>:281 - Identifying non-water atoms and creating filtered PDB
+2025-07-05 03:20:21 | INFO     | __main__:<module>:285 - Found 24 non-water atoms out of 2886 total atoms
+2025-07-05 03:20:21 | INFO     | __main__:<module>:289 - Starting MD simulations for 10 seeds with 5000000 steps each
+2025-07-05 03:20:21 | INFO     | __main__:<module>:291 - Starting simulation for seed 0
+2025-07-05 03:20:25 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 0
+2025-07-05 03:37:13 | INFO     | __main__:<module>:347 - Completed simulation for seed 0
+2025-07-05 03:37:13 | INFO     | __main__:<module>:291 - Starting simulation for seed 1
+2025-07-05 03:37:14 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 1
+2025-07-05 03:55:24 | INFO     | __main__:<module>:347 - Completed simulation for seed 1
+2025-07-05 03:55:24 | INFO     | __main__:<module>:291 - Starting simulation for seed 2
+2025-07-05 03:55:25 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 2
+2025-07-05 04:14:57 | INFO     | __main__:<module>:347 - Completed simulation for seed 2
+2025-07-05 04:14:57 | INFO     | __main__:<module>:291 - Starting simulation for seed 3
+2025-07-05 04:14:58 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 3
+2025-07-05 04:35:58 | INFO     | __main__:<module>:347 - Completed simulation for seed 3
+2025-07-05 04:35:58 | INFO     | __main__:<module>:291 - Starting simulation for seed 4
+2025-07-05 04:35:59 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 4
+2025-07-05 04:58:11 | INFO     | __main__:<module>:347 - Completed simulation for seed 4
+2025-07-05 04:58:11 | INFO     | __main__:<module>:291 - Starting simulation for seed 5
+2025-07-05 04:58:12 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 5
+2025-07-05 05:21:46 | INFO     | __main__:<module>:347 - Completed simulation for seed 5
+2025-07-05 05:21:46 | INFO     | __main__:<module>:291 - Starting simulation for seed 6
+2025-07-05 05:21:47 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 6
+2025-07-05 05:47:02 | INFO     | __main__:<module>:347 - Completed simulation for seed 6
+2025-07-05 05:47:02 | INFO     | __main__:<module>:291 - Starting simulation for seed 7
+2025-07-05 05:47:03 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 7
+2025-07-05 06:13:27 | INFO     | __main__:<module>:347 - Completed simulation for seed 7
+2025-07-05 06:13:27 | INFO     | __main__:<module>:291 - Starting simulation for seed 8
+2025-07-05 06:13:28 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 8
+2025-07-05 06:41:24 | INFO     | __main__:<module>:347 - Completed simulation for seed 8
+2025-07-05 06:41:24 | INFO     | __main__:<module>:291 - Starting simulation for seed 9
+2025-07-05 06:41:25 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 9
+2025-07-05 07:10:49 | INFO     | __main__:<module>:347 - Completed simulation for seed 9
+2025-07-05 07:10:49 | INFO     | __main__:<module>:349 - ----------========== MD Simulations Complete ==========----------
+2025-07-05 07:10:49 | INFO     | __main__:<module>:350 - All results saved to: /home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/pyclops/pyclops/losses/kdes/_records/_simulations/lys-tyr

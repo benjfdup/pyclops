@@ -1,0 +1,39 @@
+2025-07-05 03:11:17 | INFO     | __main__:<module>:70 - ----------========== Starting MD ==========----------
+2025-07-05 03:11:17 | INFO     | __main__:<module>:217 - Generating forcefield for SMILES: CSCC(=O)C
+2025-07-05 03:11:17 | INFO     | __main__:<module>:219 - Generating initial PDB structure and saving to /home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/pyclops/pyclops/losses/kdes/_records/_simulations/cys-carboxyl
+2025-07-05 03:11:30 | INFO     | __main__:<module>:222 - Creating OpenMM system with PME and 1nm cutoff
+2025-07-05 03:11:34 | INFO     | __main__:<module>:281 - Identifying non-water atoms and creating filtered PDB
+2025-07-05 03:11:34 | INFO     | __main__:<module>:285 - Found 14 non-water atoms out of 2876 total atoms
+2025-07-05 03:11:34 | INFO     | __main__:<module>:289 - Starting MD simulations for 10 seeds with 5000000 steps each
+2025-07-05 03:11:34 | INFO     | __main__:<module>:291 - Starting simulation for seed 0
+2025-07-05 03:11:38 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 0
+2025-07-05 03:28:10 | INFO     | __main__:<module>:347 - Completed simulation for seed 0
+2025-07-05 03:28:10 | INFO     | __main__:<module>:291 - Starting simulation for seed 1
+2025-07-05 03:28:11 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 1
+2025-07-05 03:46:17 | INFO     | __main__:<module>:347 - Completed simulation for seed 1
+2025-07-05 03:46:17 | INFO     | __main__:<module>:291 - Starting simulation for seed 2
+2025-07-05 03:46:18 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 2
+2025-07-05 04:05:47 | INFO     | __main__:<module>:347 - Completed simulation for seed 2
+2025-07-05 04:05:47 | INFO     | __main__:<module>:291 - Starting simulation for seed 3
+2025-07-05 04:05:48 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 3
+2025-07-05 04:26:31 | INFO     | __main__:<module>:347 - Completed simulation for seed 3
+2025-07-05 04:26:31 | INFO     | __main__:<module>:291 - Starting simulation for seed 4
+2025-07-05 04:26:33 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 4
+2025-07-05 04:48:30 | INFO     | __main__:<module>:347 - Completed simulation for seed 4
+2025-07-05 04:48:30 | INFO     | __main__:<module>:291 - Starting simulation for seed 5
+2025-07-05 04:48:31 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 5
+2025-07-05 05:11:57 | INFO     | __main__:<module>:347 - Completed simulation for seed 5
+2025-07-05 05:11:57 | INFO     | __main__:<module>:291 - Starting simulation for seed 6
+2025-07-05 05:11:58 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 6
+2025-07-05 05:37:06 | INFO     | __main__:<module>:347 - Completed simulation for seed 6
+2025-07-05 05:37:06 | INFO     | __main__:<module>:291 - Starting simulation for seed 7
+2025-07-05 05:37:08 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 7
+2025-07-05 06:03:15 | INFO     | __main__:<module>:347 - Completed simulation for seed 7
+2025-07-05 06:03:15 | INFO     | __main__:<module>:291 - Starting simulation for seed 8
+2025-07-05 06:03:16 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 8
+2025-07-05 06:30:59 | INFO     | __main__:<module>:347 - Completed simulation for seed 8
+2025-07-05 06:30:59 | INFO     | __main__:<module>:291 - Starting simulation for seed 9
+2025-07-05 06:31:00 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 9
+2025-07-05 06:59:59 | INFO     | __main__:<module>:347 - Completed simulation for seed 9
+2025-07-05 06:59:59 | INFO     | __main__:<module>:349 - ----------========== MD Simulations Complete ==========----------
+2025-07-05 06:59:59 | INFO     | __main__:<module>:350 - All results saved to: /home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/pyclops/pyclops/losses/kdes/_records/_simulations/cys-carboxyl

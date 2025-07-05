@@ -1,0 +1,70 @@
+REMARK   1 CREATED WITH MDTraj 1.10.3, 2025-07-05
+CRYST1   25.000   25.000   25.000  90.00  90.00  90.00 P 1           1 
+MODEL        0
+ATOM      1  C1  UNL A   1      11.258   1.916   1.059  1.00  0.00           C  
+ATOM      2  O1  UNL A   1      10.597   1.741  -0.014  1.00  0.00           O  
+ATOM      3  C2  UNL A   1      12.513   2.668   0.864  1.00  0.00           C  
+ATOM      4  N1  UNL A   1      10.753   1.403   2.263  1.00  0.00           N  
+ATOM      5  C3  UNL A   1       9.541   0.668   2.492  1.00  0.00           C  
+ATOM      6  C4  UNL A   1       8.388   1.610   2.486  1.00  0.00           C  
+ATOM      7  C5  UNL A   1       8.015   2.232   3.654  1.00  0.00           C  
+ATOM      8  C6  UNL A   1       6.938   3.104   3.677  1.00  0.00           C  
+ATOM      9  C7  UNL A   1       6.184   3.395   2.534  1.00  0.00           C  
+ATOM     10  C8  UNL A   1       6.583   2.754   1.376  1.00  0.00           C  
+ATOM     11  C9  UNL A   1       7.642   1.896   1.347  1.00  0.00           C  
+ATOM     12  C10 UNL A   1       5.025   4.321   2.562  1.00  0.00           C  
+ATOM     13  N2  UNL A   1       5.380   5.702   2.320  1.00  0.00           N  
+ATOM     14  C11 UNL A   1       5.699   6.322   1.074  1.00  0.00           C  
+ATOM     15  O2  UNL A   1       5.675   5.591   0.040  1.00  0.00           O  
+ATOM     16  C12 UNL A   1       6.044   7.777   1.022  1.00  0.00           C  
+ATOM     17  H1  UNL A   1      12.710   3.295   1.769  1.00  0.00           H  
+ATOM     18  H2  UNL A   1      13.374   1.988   0.632  1.00  0.00           H  
+ATOM     19  H3  UNL A   1      12.439   3.384  -0.000  1.00  0.00           H  
+ATOM     20  H4  UNL A   1      11.370   1.600   3.082  1.00  0.00           H  
+ATOM     21  H5  UNL A   1       9.398  -0.100   1.685  1.00  0.00           H  
+ATOM     22  H6  UNL A   1       9.568   0.162   3.467  1.00  0.00           H  
+ATOM     23  H7  UNL A   1       8.524   2.085   4.612  1.00  0.00           H  
+ATOM     24  H8  UNL A   1       6.632   3.607   4.607  1.00  0.00           H  
+ATOM     25  H9  UNL A   1       6.067   2.913   0.452  1.00  0.00           H  
+ATOM     26  H10 UNL A   1       7.926   1.408   0.422  1.00  0.00           H  
+ATOM     27  H11 UNL A   1       4.558   4.259   3.568  1.00  0.00           H  
+ATOM     28  H12 UNL A   1       4.321   3.940   1.785  1.00  0.00           H  
+ATOM     29  H13 UNL A   1       5.420   6.365   3.140  1.00  0.00           H  
+ATOM     30  H14 UNL A   1       5.226   8.392   1.497  1.00  0.00           H  
+ATOM     31  H15 UNL A   1       6.948   8.021   1.610  1.00  0.00           H  
+ATOM     32  H16 UNL A   1       6.105   8.096  -0.022  1.00  0.00           H  
+TER      33      UNL A   1
+ENDMDL
+CONECT    1    2    3    4
+CONECT    2    1
+CONECT    3    1   17   18   19
+CONECT    4    1    5   20
+CONECT    5    4    6   21   22
+CONECT    6    5    7   11
+CONECT    7    6    8   23
+CONECT    8    7    9   24
+CONECT    9    8   10   12
+CONECT   10    9   11   25
+CONECT   11    6   10   26
+CONECT   12    9   13   27   28
+CONECT   13   12   14   29
+CONECT   14   13   15   16
+CONECT   15   14
+CONECT   16   14   30   31   32
+CONECT   17    3
+CONECT   18    3
+CONECT   19    3
+CONECT   20    4
+CONECT   21    5
+CONECT   22    5
+CONECT   23    7
+CONECT   24    8
+CONECT   25   10
+CONECT   26   11
+CONECT   27   12
+CONECT   28   12
+CONECT   29   13
+CONECT   30   16
+CONECT   31   16
+CONECT   32   16
+END

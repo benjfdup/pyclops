@@ -1,0 +1,34 @@
+REMARK   1 CREATED WITH MDTraj 1.10.3, 2025-07-05
+CRYST1   25.000   25.000   25.000  90.00  90.00  90.00 P 1           1 
+MODEL        0
+ATOM      1  C1  UNL A   1       0.830   0.504   5.159  1.00  0.00           C  
+ATOM      2  S1  UNL A   1       2.332   0.538   4.135  1.00  0.00           S  
+ATOM      3  C2  UNL A   1       2.038   1.680   2.741  1.00  0.00           C  
+ATOM      4  C3  UNL A   1       0.960   1.026   1.912  1.00  0.00           C  
+ATOM      5  O1  UNL A   1       0.324  -0.012   2.001  1.00  0.00           O  
+ATOM      6  C4  UNL A   1       0.643   1.883   0.736  1.00  0.00           C  
+ATOM      7  H1  UNL A   1       1.097  -0.011   6.105  1.00  0.00           H  
+ATOM      8  H2  UNL A   1       0.471   1.554   5.339  1.00  0.00           H  
+ATOM      9  H3  UNL A   1      -0.017  -0.000   4.622  1.00  0.00           H  
+ATOM     10  H4  UNL A   1       1.632   2.644   3.053  1.00  0.00           H  
+ATOM     11  H5  UNL A   1       2.959   1.801   2.134  1.00  0.00           H  
+ATOM     12  H6  UNL A   1       1.599   2.064   0.195  1.00  0.00           H  
+ATOM     13  H7  UNL A   1       0.227   2.817   1.133  1.00  0.00           H  
+ATOM     14  H8  UNL A   1      -0.013   1.377  -0.012  1.00  0.00           H  
+TER      15      UNL A   1
+ENDMDL
+CONECT    1    2    7    8    9
+CONECT    2    1    3
+CONECT    3    2    4   10   11
+CONECT    4    3    5    6
+CONECT    5    4
+CONECT    6    4   12   13   14
+CONECT    7    1
+CONECT    8    1
+CONECT    9    1
+CONECT   10    3
+CONECT   11    3
+CONECT   12    6
+CONECT   13    6
+CONECT   14    6
+END
