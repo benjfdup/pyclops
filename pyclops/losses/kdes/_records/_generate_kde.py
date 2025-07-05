@@ -17,8 +17,6 @@ from pyclops.losses.lys_arg import LysArg
 from pyclops.losses.lys_tyr import LysTyr
 
 
-mol_names = ['Amide', 'Carboxylic-Carbo', 'Cys-Arg', 'Cys-Carboxyl', 'Disulfide', 'Lys-Arg', 'Lys-Tyr']
-
 mol_verts = {
     'Amide': Amide._atom_idxs_keys, # N1, C2, C1, O1
     'Carboxylic-Carbo': CarboxylicCarbo._atom_idxs_keys, # C1, O1, C2, O2
@@ -43,7 +41,7 @@ mol_tetra_dict = {
 
 mol_tetra_vals: Dict[str, torch.Tensor] = {}
 
-for mol_name in mol_names:
+for mol_name in mol_verts.keys():
     stride: int = 1
     frac_to_exclude: float = 0.2 # initial fraction to exclude from the start of the trajectory
 
@@ -90,7 +88,7 @@ for mol_name in mol_names:
 
     mol_tetra_vals[mol_name] = distances
 
-for mol_name in mol_names:
+for mol_name in mol_verts.keys():
     kde = KernelDensity(bandwidth=1.0, kernel='cauchy') # bandwidth is in angstroms
     X = torch.from_numpy(mol_tetra_vals[mol_name]).to('cuda')
 
