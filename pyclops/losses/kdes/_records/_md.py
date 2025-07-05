@@ -125,7 +125,7 @@ def smiles_to_pdb(smiles: str, filename: str) -> None:
     """ Turns a SMILES string into a PDB file (written to current working directory). """
     m = Chem.MolFromSmiles(smiles)
     mh = Chem.AddHs(m)
-    AllChem.EmbedMolecule(mh, randomSeed=seed)
+    AllChem.EmbedMolecule(mh)
     Chem.MolToPDBFile(mh, filename)
 
 class SubsettingDCDReporter(object): # Taken from OpenMM Github (doesnt seem to be on the conda package)
