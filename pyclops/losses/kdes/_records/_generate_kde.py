@@ -20,21 +20,21 @@ from pyclops.losses.lys_tyr import LysTyr
 mol_names = ['Amide', 'Carboxylic-Carbo', 'Cys-Arg', 'Cys-Carboxyl', 'Disulfide', 'Lys-Arg', 'Lys-Tyr']
 
 mol_verts = {
-    'Amide': Amide._atom_idxs_keys,
-    'Carboxylic-Carbo': CarboxylicCarbo._atom_idxs_keys,
-    'Cys-Carboxyl': CysteineCarbo._atom_idxs_keys,
-    'Disulfide': Disulfide._atom_idxs_keys,
-    'Lys-Arg': LysArg._atom_idxs_keys,
-    'Lys-Tyr': LysTyr._atom_idxs_keys,
+    'Amide': Amide._atom_idxs_keys, # N1, C2, C1, O1
+    'Carboxylic-Carbo': CarboxylicCarbo._atom_idxs_keys, # C1, O1, C2, O2
+    'Cys-Carboxyl': CysteineCarbo._atom_idxs_keys, # S1, C1, C3, O1
+    'Disulfide': Disulfide._atom_idxs_keys, # S1, C1, S2, C2
+    'Lys-Arg': LysArg._atom_idxs_keys, # N1, N2, N3, N4
+    'Lys-Tyr': LysTyr._atom_idxs_keys, # N1, C1, O1, C2
 }
 
 verts_to_pdb_atoms = {
-    Amide._atom_idxs_keys: ['N1', 'C1', 'O1', 'C2'],
-    CarboxylicCarbo._atom_idxs_keys: ['N1', 'N2', 'C1', 'C11'],
-    CysteineCarbo._atom_idxs_keys: ['S1', 'C3', 'O1', 'C1'],
-    Disulfide._atom_idxs_keys: ['S1', 'S2', 'C1', 'C2'],
-    LysArg._atom_idxs_keys: ['N1', 'N2', 'N3', 'N4'],
-    LysTyr._atom_idxs_keys: ['N1', 'C3', 'O1', 'C4'],
+    Amide._atom_idxs_keys: ["N1", "C2", "C1", "O1"],
+    CarboxylicCarbo._atom_idxs_keys: ["C1", "N1", "C11", "N2"],
+    CysteineCarbo._atom_idxs_keys: ["S1", "C1", "C3", "O1"],
+    Disulfide._atom_idxs_keys: ["S1", "C1", "S2", "C2"],
+    LysArg._atom_idxs_keys: ["N1", "N2", "N3", "N4"],
+    LysTyr._atom_idxs_keys: ["N1", "C1", "O1", "C3"],
 }
 
 mol_tetra_dict = {
