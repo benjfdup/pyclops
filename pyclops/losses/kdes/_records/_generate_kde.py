@@ -94,7 +94,7 @@ for mol_name in mol_verts.keys():
     # fit the bandwidth better here...
     # Note: in the future, I will make for better bandwidth handling (DxD matrix),
     # but for now, 1.0 is fine... it just very likely oversmooths the data.
-    kde = KernelDensity(bandwidth=1.0, kernel='cauchy') # bandwidth is in angstroms
+    kde = KernelDensity(bandwidth=0.8, kernel='cauchy') # bandwidth is in angstroms
     kde.fit(X)
 
     save_path = os.path.join(save_dir, f'{mol_name}_kde.pt')
