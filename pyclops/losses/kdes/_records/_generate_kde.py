@@ -92,6 +92,8 @@ for mol_name in mol_verts.keys():
 for mol_name in mol_verts.keys():
     X = torch.from_numpy(mol_tetra_vals[mol_name]).to('cuda')
     # fit the bandwidth better here...
+    # Note: in the future, I will make for better bandwidth handling (DxD matrix),
+    # but for now, 1.0 is fine... it just very likely oversmooths the data.
     kde = KernelDensity(bandwidth=1.0, kernel='cauchy') # bandwidth is in angstroms
     kde.fit(X)
 
