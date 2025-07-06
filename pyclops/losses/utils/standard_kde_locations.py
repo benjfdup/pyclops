@@ -10,12 +10,12 @@ import os
 import importlib.resources
 
 KDE_FILENAMES = {
-    'amide': 'Amide_kde.pt',
-    'carboxylic-carbo': 'Carboxylic-Carbo_kde.pt',
-    'cysteine-carbo': 'Cys-Carboxyl_kde.pt',
-    'disulfide': 'Disulfide_kde.pt',
-    'lys-arg': 'Lys-Arg_kde.pt',
-    'lys-tyr': 'Lys-Tyr_kde.pt',
+    'amide': 'amide_kde.pt',
+    'carboxylic-carbo': 'carboxylic-carbo_kde.pt',
+    'cysteine-carbo': 'cysteine-carbo_kde.pt',
+    'disulfide': 'disulfide_kde.pt',
+    'lys-arg': 'lys-arg_kde.pt',
+    'lys-tyr': 'lys-tyr_kde.pt',
 }
 
 def get_kde_path(kde_type: str) -> str:
