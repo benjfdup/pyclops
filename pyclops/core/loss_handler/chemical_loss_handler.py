@@ -543,6 +543,27 @@ class ChemicalLossHandler(LossHandler):
         smallest_loss_indices = self._get_smallest_loss_index(positions)
         return tuple(self._chemical_losses[i] for i in smallest_loss_indices)
     
+    def get_smallest_loss(self, positions: torch.Tensor) -> Tuple[ChemicalLoss, ...]:
+        """
+        Get the smallest loss for each batch.
+        Returns a tuple of ChemicalLoss objects.
+        """
+        return self._get_smallest_loss(positions)
+
+    def get_smallest_loss_str(self, positions: torch.Tensor) -> str:
+        """
+        Get the summary of the smallest loss for each batch.
+        """
+        str_list = []
+        smallest_losses = self.get_smallest_loss(positions)
+        for loss in smallest_losses:
+            resonance_key = loss._resonance_key
+            method = resonance_key[0]
+            idxs = list(resonance_key[1])
+            idxs.sort()
+            str_list.append(method + " " + str(idxs))
+        return ", ".join(str_list)
+    
     @property
     def _raw_summary(self, ) -> str:
         """
