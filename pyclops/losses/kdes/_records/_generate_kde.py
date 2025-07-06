@@ -18,12 +18,12 @@ from pyclops.losses.lys_tyr import LysTyr
 
 
 mol_verts = {
-    'Amide': Amide._atom_idxs_keys, # N1, C2, C1, O1
-    'Carboxylic-Carbo': CarboxylicCarbo._atom_idxs_keys, # C1, O1, C2, O2
-    'Cys-Carboxyl': CysteineCarbo._atom_idxs_keys, # S1, C1, C3, O1
-    'Disulfide': Disulfide._atom_idxs_keys, # S1, C1, S2, C2
-    'Lys-Arg': LysArg._atom_idxs_keys, # N1, N2, N3, N4
-    'Lys-Tyr': LysTyr._atom_idxs_keys, # N1, C1, O1, C2
+    'amide': Amide._atom_idxs_keys, # N1, C2, C1, O1
+    'carboxylic-carbo': CarboxylicCarbo._atom_idxs_keys, # C1, O1, C2, O2
+    'cys-carboxyl': CysteineCarbo._atom_idxs_keys, # S1, C1, C3, O1
+    'disulfide': Disulfide._atom_idxs_keys, # S1, C1, S2, C2
+    'lys-arg': LysArg._atom_idxs_keys, # N1, N2, N3, N4
+    'lys-tyr': LysTyr._atom_idxs_keys, # N1, C1, O1, C2
 }
 
 verts_to_pdb_atoms = {
@@ -45,8 +45,9 @@ for mol_name in mol_verts.keys():
     stride: int = 1
     frac_to_exclude: float = 0.2 # initial fraction to exclude from the start of the trajectory
 
-    mol_dir = os.path.join('/home/bfd21/rds/hpc-work/tbg/jobs/md-jobs', mol_name)
-    results_dir = os.path.join(mol_dir, 'results/')
+    mol_dir = os.path.join('/home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/pyclops/pyclops/losses/kdes/_records/_simulations', mol_name)
+    results_dir = os.path.join(mol_dir)
+    save_dir = '/home/bfd21/rds/rds-ab_non_specific-7ZL1FWpHG4k/pyclops/pyclops/losses/kdes'
 
     if not os.path.exists(results_dir):
         raise FileNotFoundError(f"Directory does not exist: {results_dir}")
@@ -79,7 +80,7 @@ for mol_name in mol_verts.keys():
     edges_idx = [(atom_indices[i], atom_indices[j]) for i, j in edges]
 
     # Compute distances for all 6 edges across frames
-    distances = md.compute_distances(traj, edges_idx)  # shape: (n_frames, 6)
+    distances = md.compute_distances(traj, edges_idx, periodic=True)  # shape: (n_frames, 6)
     distances *= 10  # Convert from nm to Angstroms
 
     print(f'mol_name: {mol_name}')
@@ -89,11 +90,10 @@ for mol_name in mol_verts.keys():
     mol_tetra_vals[mol_name] = distances
 
 for mol_name in mol_verts.keys():
-    kde = KernelDensity(bandwidth=1.0, kernel='cauchy') # bandwidth is in angstroms
     X = torch.from_numpy(mol_tetra_vals[mol_name]).to('cuda')
-
-
+    # fit the bandwidth better here...
+    kde = KernelDensity(bandwidth=1.0, kernel='cauchy') # bandwidth is in angstroms
     kde.fit(X)
 
-    save_path = os.path.join(os.path.dirname(__file__), f'{mol_name}_kde.pt')
+    save_path = os.path.join(save_dir, f'{mol_name}_kde.pt')
     torch.save(kde, save_path)
