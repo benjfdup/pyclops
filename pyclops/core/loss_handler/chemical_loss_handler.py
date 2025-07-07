@@ -386,6 +386,9 @@ class ChemicalLossHandler(LossHandler):
         the `ChemicalLoss` objects which power the `ChemicalLossHandler` instance.
         """
         return self._chemical_losses
+    @property
+    def device(self) -> torch.device:
+        return self._device
     
     @staticmethod
     @torch.jit.script # TODO: check this!!!
@@ -484,7 +487,7 @@ class ChemicalLossHandler(LossHandler):
         final_loss = soft_min(weighted_losses, alpha=self._alpha) # shape [n_batch, ]
         
         return final_loss
-    
+
     def _eval_loss_explicit(self, positions: torch.Tensor) -> torch.Tensor:
         """
         Directly computes the loss, without exploiting the parallelization of the loss computation.
@@ -523,13 +526,33 @@ class ChemicalLossHandler(LossHandler):
         """
         return self._eval_loss_explicit(positions * self._units_factor)
     
+    def _eval_individual_losses_explicit(self, 
+                                         positions: torch.Tensor, # [n_batch, n_atoms, 3]
+                                         ) -> torch.Tensor: # [n_batch, n_losses]
+        """
+        Directly computes the loss, without exploiting the parallelization of the loss computation.
+        This will be slower than the optimized version, but it is useful for debugging and testing.
+        There is no soft min applied at the end of this function, nor resonance groups.
+
+        Of course, as this is not a wrapped call, positions MUST be in angstroms.
+        """
+        n_batch = positions.shape[0]
+        losses = torch.zeros(n_batch, self.n_losses, dtype=torch.float, device=self._device) # shape [n_batch, n_losses]
+        
+        for i in range(self.n_losses):
+            loss = self._chemical_losses[i]
+            loss_values = loss(positions)
+            losses[:, i] = loss_values
+        
+        return losses # shape [n_batch, n_losses]
+    
     def _get_smallest_loss_index(self, positions: torch.Tensor) -> torch.Tensor:
         """
         Get the index of the smallest loss per batch.
         Returns a tensor of shape [n_batch, ] and contains the index of the smallest loss for each batch.
         """
         # efficiency doesnt matter so much here, so I will just use the explicit version
-        explicit_losses = self._call_explicit(positions)
+        explicit_losses = self._eval_individual_losses_explicit(positions * self._units_factor)
 
         # find the index of the smallest loss for each batch
         smallest_loss_indices = torch.argmin(explicit_losses, dim=1) # shape [n_batch, ]
