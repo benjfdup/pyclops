@@ -46,3 +46,6 @@ DEFAULT_STRATEGIES: Set[Type[ChemicalLoss]] = {
     # lys-tyr
     LysTyr,
 }
+
+# default lookup table for method_str -> strategy
+DEFAULT_METHOD_TO_STRATEGY: Dict[str, Type[ChemicalLoss]] = {strategy._method: strategy for strategy in DEFAULT_STRATEGIES}
