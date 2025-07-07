@@ -391,7 +391,7 @@ class ChemicalLossHandler(LossHandler):
         return self._device
     
     @staticmethod
-    @torch.jit.script # TODO: check this!!!
+    @torch.jit.script
     def _compute_distances(
         positions: torch.Tensor, # shape [n_batch, n_atoms, 3], all floats
         vertexes: torch.Tensor, # shape [n_variations, 4], all ints in range (n_atoms), all longs
@@ -498,7 +498,7 @@ class ChemicalLossHandler(LossHandler):
         
         for i in range(self.n_losses):
             loss = self._chemical_losses[i]
-            loss_values = loss(positions)
+            loss_values = loss(positions, _suppress_warnings = True)
             losses[:, i] = loss_values
         
         # Step 3: Take minimum value over each resonance group
@@ -541,7 +541,7 @@ class ChemicalLossHandler(LossHandler):
         
         for i in range(self.n_losses):
             loss = self._chemical_losses[i]
-            loss_values = loss(positions)
+            loss_values = loss(positions, _suppress_warnings = True)
             losses[:, i] = loss_values
         
         return losses # shape [n_batch, n_losses]
