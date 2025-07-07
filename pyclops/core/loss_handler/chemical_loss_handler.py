@@ -543,7 +543,9 @@ class ChemicalLossHandler(LossHandler):
         smallest_loss_indices = self._get_smallest_loss_index(positions)
         return tuple(self._chemical_losses[i] for i in smallest_loss_indices)
     
-    def get_smallest_loss(self, positions: torch.Tensor) -> Tuple[ChemicalLoss, ...]:
+    def get_smallest_loss(self, 
+                          positions: torch.Tensor, # shape [n_batch, n_atoms, 3]
+                          ) -> Tuple[ChemicalLoss, ...]:
         """
         Get the smallest loss for each batch.
         Returns a tuple of ChemicalLoss objects.
