@@ -131,7 +131,6 @@ class NGLViewVisualizer:
         
         return view
 
-
     def visualize_loss_atoms(
         self,
         chemical_loss: ChemicalLoss,
