@@ -3,6 +3,7 @@ from typing import final
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem import rdForceFieldHelpers
 
 from ..loss_structure_modifier import LossStructureModifier
 from ....core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
@@ -25,11 +26,11 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
     if _fragment_rdkit_mol.GetNumConformers() == 0:
         from rdkit.Chem import AllChem
         # Add hydrogens temporarily for 3D generation
-        fragment_with_h = Chem.AddHs(_fragment_rdkit_mol)
+        # fragment_with_h = Chem.AddHs(_fragment_rdkit_mol)
         # Generate 3D coordinates
-        AllChem.EmbedMolecule(fragment_with_h, randomSeed=42)
+        AllChem.EmbedMolecule(_fragment_rdkit_mol, randomSeed=42)
         # Remove hydrogens to get back to original fragment
-        _fragment_rdkit_mol = Chem.RemoveHs(fragment_with_h)
+        #_fragment_rdkit_mol = Chem.RemoveHs(fragment_with_h)
 
     @property
     def fragment_rdkit_mol(self) -> Chem.Mol:
@@ -116,10 +117,26 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
         
         # Get the final molecule
         final_mol = emol_combined.GetMol()
+
+        # --- Freeze all original atoms and relax only the added fragment and new bonds ---
+        # Sanitize the molecule first to fix any valence issues
+        Chem.SanitizeMol(final_mol)
         
-        # DEBUG: Check for zero-length vectors before returning
-        # self._debug_zero_vectors(final_mol, "final_mol")
+        # Optimize the molecule with constraints - fix all original atoms
+        # Get force field for optimization
+        ff = rdForceFieldHelpers.MMFFGetMoleculeForceField(
+            final_mol, 
+            rdForceFieldHelpers.MMFFGetMoleculeProperties(final_mol), 
+            confId=0
+        )
         
+        # Fix all original atoms (atoms from the initial molecule)
+        for atom_idx in range(num_atoms_original):
+            ff.AddFixedPoint(atom_idx)
+        
+        # Optimize the molecule
+        ff.Minimize(maxIts=200)
+
         return final_mol
     
     def _debug_zero_vectors(self, mol: Chem.Mol, mol_name: str):

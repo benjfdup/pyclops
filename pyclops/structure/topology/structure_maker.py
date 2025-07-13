@@ -198,8 +198,7 @@ class StructureMaker():
                                          self._rdkit_atom_idxs_dict,
                                          )
     
-    def make_structure(self, # TODO: Add relaxation functionality within here
-                       # Also we need to filter out our hydrogens from the positions...
+    def make_structure(self,
                        chemical_loss: ChemicalLoss,
                        positions: Optional[ArrayLike] = None,
                        ) -> Chem.Mol:
