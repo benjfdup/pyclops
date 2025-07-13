@@ -21,7 +21,7 @@ class OpenMMScorer(BaseScorer):
                  units_factor: float,
                  forcefield: str = 'amber14-all.xml',
                  water_model: Optional[str] = None,
-                 implicit_solvent = app.OBC2,
+                 implicit_solvent_xml: str = 'implicit/gbn2.xml',
                  ):
         """
         Initialize OpenMM scorer.
@@ -31,7 +31,7 @@ class OpenMMScorer(BaseScorer):
             units_factor: Factor to convert input coordinates to angstroms
             forcefield: OpenMM forcefield XML file
             water_model: Explicit water model XML file (None for implicit solvent)
-            implicit_solvent: Implicit solvent model (used when water_model=None)
+            implicit_solvent_xml: Implicit solvent XML file (used when water_model=None)
         """
         super().__init__(topology, units_factor)
         
@@ -53,26 +53,22 @@ class OpenMMScorer(BaseScorer):
             # Load PDB with OpenMM
             pdb = app.PDBFile(temp_pdb_path)
             
-            # Set up forcefield
-            if water_model:
-                forcefield_obj = app.ForceField(forcefield, water_model)
-            else:
-                forcefield_obj = app.ForceField(forcefield)
-            
-            # Create system
+            # Set up forcefield based on solvent model
             if water_model:
                 # Explicit solvent
+                forcefield_obj = app.ForceField(forcefield, water_model)
                 self.system = forcefield_obj.createSystem(
                     pdb.topology,
                     nonbondedMethod=app.PME,
                     nonbondedCutoff=1*unit.nanometer,
                 )
             else:
-                # Implicit solvent (default)
+                # Implicit solvent - include the implicit solvent XML file
+                forcefield_obj = app.ForceField(forcefield, implicit_solvent_xml)
                 self.system = forcefield_obj.createSystem(
                     pdb.topology,
                     nonbondedMethod=app.NoCutoff,
-                    implicitSolvent=implicit_solvent,
+                    # No need to pass implicitSolvent parameter - it's defined in the XML
                 )
             
             # Create integrator (dummy, we only need it for context)
@@ -91,13 +87,13 @@ class OpenMMScorer(BaseScorer):
                       units_factor: float,
                       forcefield: str = 'amber14-all.xml',
                       water_model: Optional[str] = None,
-                      implicit_solvent = app.OBC2,
+                      implicit_solvent_xml: str = 'implicit/obc2.xml',
                       ) -> 'OpenMMScorer':
         """
         Create an OpenMMScorer from a PDB file.
         """
         topology = md.load_pdb(pdb_file).topology
-        return cls(topology, units_factor, forcefield, water_model, implicit_solvent)
+        return cls(topology, units_factor, forcefield, water_model, implicit_solvent_xml)
 
     def _convert_to_angstroms(self, coordinates: np.ndarray) -> np.ndarray:
         """Convert input coordinates to angstroms using units_factor"""
