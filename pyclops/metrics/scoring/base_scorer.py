@@ -52,4 +52,13 @@ class BaseScorer(ABC):
     def calculate_energy(self,
                          coordinates: Union[torch.Tensor, np.ndarray], # shape: [n_batch, n_atoms, 3]
                          ) -> Union[torch.Tensor, np.ndarray]: # shape: [n_batch]
+        """
+        Calculate potential energy in kJ/mol.
+
+        Args:
+            coordinates: TensorLike, shape: [n_batch, n_atoms, 3]
+
+        Returns:
+            TensorLike, shape: [n_batch]
+        """
         raise NotImplementedError("Subclass must implement this method")
