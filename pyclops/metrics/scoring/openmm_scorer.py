@@ -85,7 +85,7 @@ class OpenMMScorer(BaseScorer):
 
     def _convert_to_angstroms(self, coordinates: np.ndarray) -> np.ndarray:
         """Convert input coordinates to angstroms using units_factor"""
-        return coordinates * self._units_factor
+        return coordinates * self.units_factor
 
     def _prepare_coordinates(self, coordinates: TensorLike) -> np.ndarray:
         """Convert coordinates to OpenMM format (nm) and handle batching"""

@@ -1,7 +1,7 @@
 from .base_scorer import BaseScorer
 import torchmd as tm
 import mdtraj as md
-from typing import Optional, Union
+from typing import Union, Optional
 import torch
 import numpy as np
 import tempfile
@@ -16,8 +16,10 @@ class TorchMDScorer(BaseScorer):
                  units_factor: float,
                  forcefield: str = 'amber14-all.xml',
                  implicit_solvent_xml: str = 'implicit/gbn2.xml',
+                 device: Optional[str] = None,
                  ):
         super().__init__(topology, units_factor)
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu') if device is None else torch.device(device)
         
         # Convert mdtraj topology to TorchMD format
         # Save topology to a temporary PDB to load with TorchMD
@@ -35,13 +37,25 @@ class TorchMDScorer(BaseScorer):
         
         try:
             # Load PDB with TorchMD
-            self.pdb = tm.PDBFile(temp_pdb_path)
+            pdb = tm.PDBFile(temp_pdb_path)
             
-            # Set up forcefield based on solvent model
-            self.forcefield = tm.ForceField(forcefield, implicit_solvent_xml)
+            # Create TorchMD system with forcefield
+            ff = tm.ForceField(forcefield, implicit_solvent_xml)
             
-            # Create system
-            self.system = self.forcefield.createSystem(self.pdb.topology)
+            # Create the system
+            system = ff.createSystem(pdb.topology)
+            
+            # Create simulation configuration
+            self.conf = {
+                'system': system,
+                'topology': pdb.topology,
+                'integrator': tm.integrators.VelocityVerlet(1.0),  # dummy timestep
+                'device': torch.device(device),
+                'precision': torch.float32,
+            }
+            
+            # Create the simulation object
+            self.sim = tm.dynamics.NVT(**self.conf)
             
         finally:
             # Clean up temporary file
@@ -53,12 +67,13 @@ class TorchMDScorer(BaseScorer):
                       units_factor: float,
                       forcefield: str = 'amber14-all.xml',
                       implicit_solvent_xml: str = 'implicit/gbn2.xml',
+                      device: str = 'cpu',
                       ) -> 'TorchMDScorer':
         """
         Create a TorchMDScorer from a PDB file.
         """
         topology = md.load_pdb(pdb_file).topology
-        return cls(topology, units_factor, forcefield, implicit_solvent_xml)
+        return cls(topology, units_factor, forcefield, implicit_solvent_xml, device)
 
     def _prepare_coordinates(self, coordinates: TensorLike) -> torch.Tensor:
         """Convert coordinates to TorchMD format and handle batching"""
@@ -71,6 +86,9 @@ class TorchMDScorer(BaseScorer):
         # Convert to angstroms
         coords_angstrom = self._convert_to_angstroms(coords_torch)
         
+        # Move to device
+        coords_angstrom = coords_angstrom.to(self.device)
+        
         return coords_angstrom
 
     def calculate_energy(self,
@@ -80,13 +98,14 @@ class TorchMDScorer(BaseScorer):
         Calculate potential energy in kJ/mol.
 
         Args:
-            coordinates: TensorLike, shape: [n_batch, n_atoms, 3]
+            coordinates: TensorLike, shape: [n_batch, n_atoms, 3] or [n_atoms, 3]
 
         Returns:
-            TensorLike, shape: [n_batch]
+            TensorLike, shape: [n_batch] or [1]
         """
         coords_angstrom = self._prepare_coordinates(coordinates)
         is_torch = isinstance(coordinates, torch.Tensor)
+        original_device = coordinates.device if isinstance(coordinates, torch.Tensor) else None
         
         # Handle batching
         if coords_angstrom.ndim == 3:  # [n_batch, n_atoms, 3]
@@ -94,23 +113,35 @@ class TorchMDScorer(BaseScorer):
             energies = []
             
             for i in range(batch_size):
-                # Set positions and calculate energy
-                self.system.setPositions(coords_angstrom[i])
-                energy_kj = self.system.getPotentialEnergy().value_in_unit(tm.unit.kilojoules_per_mole)
-                energies.append(energy_kj)
+                # Set positions in TorchMD simulation
+                self.sim.pos = coords_angstrom[i]
+                
+                # Calculate energy using TorchMD's force calculation
+                # This will compute the potential energy
+                energy = self.sim.calculate_potential_energy()
+                
+                # Convert from kcal/mol to kJ/mol (TorchMD uses kcal/mol)
+                energy_kj = energy * 4.184
+                energies.append(energy_kj.item())
             
             result = torch.tensor(energies, dtype=torch.float32)  # Shape: [n_batch]
         else:  # Single conformation [n_atoms, 3]
-            self.system.setPositions(coords_angstrom)
-            energy_kj = self.system.getPotentialEnergy().value_in_unit(tm.unit.kilojoules_per_mole)
-            result = torch.tensor([energy_kj], dtype=torch.float32)  # Shape: [1]
+            # Set positions in TorchMD simulation
+            self.sim.pos = coords_angstrom
+            
+            # Calculate energy
+            energy = self.sim.calculate_potential_energy()
+            
+            # Convert from kcal/mol to kJ/mol
+            energy_kj = energy * 4.184
+            result = torch.tensor([energy_kj.item()], dtype=torch.float32)  # Shape: [1]
         
         # Convert back to numpy if input was numpy
         if not is_torch:
-            return result.numpy()
+            return result.cpu().numpy()
         
         # Move to same device as input if torch
-        if isinstance(coordinates, torch.Tensor):
-            result = result.to(coordinates.device)
+        if original_device is not None:
+            result = result.to(original_device)
         
         return result
