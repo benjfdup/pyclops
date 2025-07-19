@@ -32,10 +32,10 @@ class MotifLossHandler(LossHandler):
 
     def __init__(self,
                  # standard args
-                 units_factor: float,
                  
                  # motif args
                  motif: torch.Tensor,
+                 units_factor: float = 1.0,
                  motif_units_factor: Optional[float] = None,
                  tolerance: float = 0.0,
                  squared: bool = False,

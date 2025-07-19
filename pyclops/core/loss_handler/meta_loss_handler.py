@@ -14,9 +14,9 @@ class MetaLossHandler(LossHandler):
     """
 
     def __init__(self, 
-                 units_factor: float = 1.0, 
                  subordinates: Sequence[LossHandler],
                  subordinate_factors: Sequence[float],
+                 units_factor: float = 1.0, 
                  device: Optional[torch.device] = None,
                  _suppress_warnings: bool = False,
                  ):
