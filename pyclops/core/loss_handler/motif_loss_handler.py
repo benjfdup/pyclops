@@ -1,3 +1,7 @@
+"""
+This is not finished yet. Need to finish as I need to be able to specify which atoms to use for the motif.
+"""
+
 import warnings
 from typing import Optional
 
