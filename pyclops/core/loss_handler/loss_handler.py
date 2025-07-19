@@ -7,7 +7,7 @@ class LossHandler(ABC):
     This class is designed to be immutable after initialization.
     """
     
-    def __init__(self, units_factor: float):
+    def __init__(self, units_factor: float = 1.0):
         """Initialize a LossHandler instance.
         Args:
             units_factor: The factor to convert the units of the positions to Angstroms. 

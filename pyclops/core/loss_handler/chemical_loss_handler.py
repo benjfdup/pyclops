@@ -35,7 +35,7 @@ class ChemicalLossHandler(LossHandler):
     
     def __init__(self,
                  traj: md.Trajectory,
-                 units_factor: float,
+                 units_factor: float = 1.0,
                  strategies: Optional[StrategySet] = None,
                  weights: Optional[WeightDict] = None,
                  offsets: Optional[OffsetDict] = None,
@@ -66,7 +66,7 @@ class ChemicalLossHandler(LossHandler):
     @classmethod
     def from_pdb_file(cls,
                       pdb_file: PathLike,
-                      units_factor: float,
+                      units_factor: float = 1.0,
                       strategies: Optional[StrategySet] = None,
                       weights: Optional[WeightDict] = None,
                       offsets: Optional[OffsetDict] = None,

@@ -4,7 +4,7 @@ from ..loss_handler.loss_handler import LossHandler
 
 
 class GyrationLossHandler(LossHandler):
-    def __init__(self, units_factor: float, squared: bool):
+    def __init__(self, units_factor: float = 1.0, squared: bool = 1.0):
         self._squared = squared
         super().__init__(units_factor)
 
