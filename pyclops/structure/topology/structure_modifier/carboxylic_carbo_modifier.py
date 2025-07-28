@@ -71,6 +71,14 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
         intermediate_mol = emol.GetMol()
         Chem.SanitizeMol(intermediate_mol)
 
+        # Now add the final bond between outer_2 and o2_idx (which is now nitrogen)
+        emol_final = Chem.EditableMol(intermediate_mol)
+        emol_final.AddBond(outer_2, o2_idx, Chem.BondType.SINGLE)
+        
+        # Get the final molecule and sanitize it
+        final_mol = emol_final.GetMol()
+        Chem.SanitizeMol(final_mol)
+        
         # Create coordinate map to constrain existing atoms to their original positions
         coord_map = {}
         original_conf = initial_parsed_mol.GetConformer()
@@ -80,18 +88,10 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
             coord_map[i] = original_conf.GetAtomPosition(i)
         
         # Use ETKDG with coordinate constraints
-        rdDistGeom.EmbedMolecule(intermediate_mol, 
+        rdDistGeom.EmbedMolecule(final_mol, 
                             coordMap=coord_map,
                             randomSeed=42,
                             useRandomCoords=False)
-        
-        # Now add the final bond between outer_2 and o2_idx (which is now nitrogen)
-        emol_final = Chem.EditableMol(intermediate_mol)
-        emol_final.AddBond(outer_2, o2_idx, Chem.BondType.SINGLE)
-        
-        # Get the final molecule and sanitize it
-        final_mol = emol_final.GetMol()
-        Chem.SanitizeMol(final_mol)
         
         return final_mol
     

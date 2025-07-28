@@ -95,6 +95,8 @@ class StructureMaker():
         
         # MDAnalysis expects positions in Angstroms
         self._initial_universe.atoms.positions = positions * units_factor
+        self._initial_rdkit_mol = self._initial_universe_to_rdkit_mol()
+        self._rdkit_atom_idxs_dict = self._parse_rdkit_mol(self._initial_rdkit_mol)
 
     def _initial_universe_to_rdkit_mol(self) -> Chem.Mol:
         """
@@ -197,16 +199,24 @@ class StructureMaker():
                                          self._mdtraj_atom_idxs_dict,
                                          self._rdkit_atom_idxs_dict,
                                          )
-    
+
     def make_structure(self,
-                       chemical_loss: ChemicalLoss,
-                       positions: Optional[ArrayLike] = None,
-                       ) -> Chem.Mol:
+                   chemical_loss: ChemicalLoss,
+                   positions: Optional[ArrayLike] = None,
+                   ) -> Chem.Mol:
         """
         Make a structure given a ChemicalLoss.
+        
+        Args:
+            chemical_loss: The chemical loss to apply
+            positions: Optional new positions for atoms. If provided, the positions 
+            will be set before the chemical loss is applied.
         """
         if positions is not None:
             self._set_positions(positions, 
                                 self._chemical_loss_handler.units_factor,
                                 )
-        return self._make_structure(chemical_loss)
+        # Create the modified structure
+        modified_mol = self._make_structure(chemical_loss)
+        
+        return modified_mol
