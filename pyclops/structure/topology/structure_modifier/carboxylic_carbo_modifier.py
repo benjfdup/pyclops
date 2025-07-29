@@ -28,11 +28,11 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
                 o2_idx: int,
                 ) -> Chem.Mol:
         """
-        [Your existing docstring]
+        Inner functionality to modify the structure according to the corresponding ChemicalLoss.
         """
         
         # Store the original number of atoms to identify which are new
-        original_num_atoms = initial_parsed_mol.GetNumAtoms()
+        original_num_atoms = initial_parsed_mol.GetNumAtoms() # only works because we never remove atoms
         
         emol = Chem.EditableMol(initial_parsed_mol)
 
@@ -77,7 +77,6 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
         
         # Get the final molecule and sanitize it
         final_mol = emol_final.GetMol()
-        Chem.SanitizeMol(final_mol)
         
         # Create coordinate map to constrain existing atoms to their original positions
         coord_map = {}
@@ -92,6 +91,7 @@ class CarboxylicCarboxylicModifier(LossStructureModifier, metaclass=ABCMeta):
                             coordMap=coord_map,
                             randomSeed=42,
                             useRandomCoords=False)
+        Chem.SanitizeMol(final_mol)
         
         return final_mol
     
