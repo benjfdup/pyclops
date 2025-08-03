@@ -1,7 +1,6 @@
 from typing import Optional, final
 
 from rdkit import Chem
-from rdkit.Chem import rdDistGeom
 
 from ....core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
 from ....losses.lys_arg import LysArg
@@ -47,9 +46,6 @@ class LysArgModifier(LossStructureModifier):
         # Add second carbon atom  
         c3_idx = emol.AddAtom(Chem.Atom(6))  # Atomic number 6 is carbon
         
-        # Track newly added atoms
-        new_atom_indices = {c2_idx, c3_idx}
-        
         # Bond the new carbons to n1
         emol.AddBond(n1_idx, c2_idx, order=Chem.rdchem.BondType.SINGLE)
         emol.AddBond(n1_idx, c3_idx, order=Chem.rdchem.BondType.SINGLE)
@@ -76,24 +72,11 @@ class LysArgModifier(LossStructureModifier):
         
         # Get the modified molecule and sanitize it
         new_mol = emol.GetMol()
-        
-        # Create coordinate map to constrain existing atoms to their original positions
-        coord_map = {}
-        original_conf = initial_parsed_mol.GetConformer()
-        
-        # Constrain all atoms except the newly added ones
-        for i in range(new_mol.GetNumAtoms()):
-            if i not in new_atom_indices:
-                coord_map[i] = original_conf.GetAtomPosition(i)
-        
-        # Use ETKDG with coordinate constraints
-        rdDistGeom.EmbedMolecule(new_mol, 
-                            coordMap=coord_map,
-                            randomSeed=42,
-                            useRandomCoords=False)
         Chem.SanitizeMol(new_mol)
-        
-        return new_mol
+
+        final_mol = self._relax_atom_subset(new_mol, [c2_idx, c3_idx])
+
+        return final_mol
     
     def _outer_mod(self,
                    chemical_loss: ChemicalLoss,

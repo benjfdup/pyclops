@@ -25,11 +25,11 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
     """
     @final
     def _inner_mod(self,
-                   initial_parsed_mol: Chem.Mol,
-                   carboxyl_carbon_idx: int,
-                   amide_nitrogen_idx: int,
-                   oxygen_to_remove_idx: Optional[int] = None,
-                   ) -> Chem.Mol:
+                initial_parsed_mol: Chem.Mol,
+                carboxyl_carbon_idx: int,
+                amide_nitrogen_idx: int,
+                oxygen_to_remove_idx: Optional[int] = None,
+                ) -> Chem.Mol:
         """
         To be used in the `_outer_mod` method of the subclasses entirely for utility purposes.
         
@@ -48,17 +48,39 @@ class AmideModifier(LossStructureModifier, metaclass=ABCMeta):
         Returns:
             Modified RDKit molecule with amide bond formed
         """
-        emol = Chem.EditableMol(initial_parsed_mol)
+        emol = Chem.EditableMol(initial_parsed_mol)        
+        
+        # MANUALLY remove hydrogen atoms bonded to nitrogen (since RDKit lies about them)
+        n_atom = emol.GetMol().GetAtomWithIdx(amide_nitrogen_idx)
+        h_indices_to_remove = []
+        for bond in n_atom.GetBonds():
+            other_atom = bond.GetOtherAtom(n_atom)
+            if other_atom.GetSymbol() == 'H':
+                h_indices_to_remove.append(other_atom.GetIdx())
+
+        # Remove hydrogens in reverse order to avoid index shifting
+        for h_idx in sorted(h_indices_to_remove, reverse=True):
+            emol.RemoveAtom(h_idx)
+            # Adjust ALL indices that come after the removed hydrogen
+            if h_idx < amide_nitrogen_idx:
+                amide_nitrogen_idx -= 1
+            if h_idx < carboxyl_carbon_idx:
+                carboxyl_carbon_idx -= 1
+            if oxygen_to_remove_idx is not None and h_idx < oxygen_to_remove_idx:
+                oxygen_to_remove_idx -= 1
 
         emol.AddBond(carboxyl_carbon_idx, amide_nitrogen_idx, order=Chem.rdchem.BondType.SINGLE)
+        
         if oxygen_to_remove_idx is not None:
             emol.RemoveAtom(oxygen_to_remove_idx)
+            if oxygen_to_remove_idx < amide_nitrogen_idx:
+                amide_nitrogen_idx -= 1
 
         new_mol = emol.GetMol()
         Chem.SanitizeMol(new_mol)
-
+        new_mol = Chem.RemoveHs(new_mol, sanitize=False)
         return new_mol
-    
+        
     @final
     def _outer_mod(self,
                    chemical_loss: ChemicalLoss,

@@ -100,25 +100,13 @@ class StructureMaker():
 
     def _initial_universe_to_rdkit_mol(self) -> Chem.Mol:
         """
-        Convert the MDAnalysis universe to an RDKit molecule.
+        Convert the MDAnalysis universe to an RDKit molecule using the built-in
+        MDAnalysis RDKit converter.
 
         Returns:
             Chem.Mol, the RDKit molecule
         """
-        # Create a temporary directory and file for the PDB
-        with tempfile.TemporaryDirectory() as temp_dir:
-            pdb_file = os.path.join(temp_dir, "temp_structure.pdb")
-            
-            # Save the universe to PDB file
-            self._initial_universe.atoms.write(pdb_file)
-            
-            # Read the PDB file with RDKit
-            mol = Chem.MolFromPDBFile(pdb_file, sanitize=True, removeHs=True)
-            
-            if mol is None:
-                raise ValueError("Failed to create RDKit molecule from PDB file")
-            
-            return mol
+        return self._initial_universe.atoms.convert_to("rdkit")
         
     @staticmethod
     def _parse_rdkit_mol(

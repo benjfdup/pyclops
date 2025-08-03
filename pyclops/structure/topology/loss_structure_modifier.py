@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import final, Dict
+from typing import final, Dict, List
 
 from rdkit import Chem
+from rdkit.Chem import AllChem
 
 from ...core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
 
@@ -25,6 +26,29 @@ class LossStructureModifier(ABC):
             raise ValueError('Subclasses must define a _method attribute')
         self._initial_parsed_mol = initial_parsed_mol # must come  with info on residues and atom idxs.
 
+    def _relax_atom_subset(self,
+                           mol: Chem.Mol,
+                           relax_idxs: List[int],
+                           max_its: int = 10000,
+                           ) -> Chem.Mol:
+        """
+        Relax the positions of a subset of atoms in the molecule.
+        """
+        if mol.GetNumConformers() > 0:
+            if mol.GetConformer().Is3D():
+                # from: https://github.com/rdkit/rdkit/discussions/5368
+                constr_idxs = tuple([i for i in range(mol.GetNumAtoms()) if i not in relax_idxs])
+                mol_new = Chem.AddHs(mol)
+                mp = AllChem.MMFFGetMoleculeProperties(mol_new)
+                ff = AllChem.MMFFGetMoleculeForceField(mol_new, mp)
+                for i in constr_idxs:
+                    ff.MMFFAddPositionConstraint(i, 0, 1.e4)
+
+                ff.Minimize(maxIts=max_its)
+                mol_new = Chem.RemoveHs(mol_new)
+                return mol_new
+        return mol
+    
     @final
     @property
     def initial_parsed_mol(self) -> Chem.Mol:

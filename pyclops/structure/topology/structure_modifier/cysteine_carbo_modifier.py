@@ -1,8 +1,6 @@
 from typing import Optional
 
 from rdkit import Chem
-from rdkit.Chem import AllChem
-from rdkit.Chem import rdDistGeom
 
 from ....core.chemical_loss.chemical_loss import ChemicalLoss, AtomIndexDict
 from ....losses.cysteine_carbo import (
@@ -43,49 +41,42 @@ class CysteineCarboModifier(LossStructureModifier):
 
         # Step 1: Add a new carbon atom and bond it to the sulfur
         new_carbon_idx = emol.AddAtom(Chem.Atom('C'))
+        #print(new_carbon_idx)
         emol.AddBond(s1_idx, new_carbon_idx, Chem.BondType.SINGLE)
 
         # Step 2: Bond the new carbon to the carboxyl carbon
         # Adding atoms doesn't affect existing indices, so c3_idx remains valid
         emol.AddBond(new_carbon_idx, c3_idx, Chem.BondType.SINGLE)
 
-        # Step 3: Remove the oxygen if specified
-        # Removing atoms shifts all subsequent indices down by 1
+        # Step 4: Remove the oxygen if specified
         if oxygen_to_remove_idx is not None:
             emol.RemoveAtom(oxygen_to_remove_idx)
+            if oxygen_to_remove_idx < new_carbon_idx:
+                new_carbon_idx -= 1
 
+        # Step 4.5: Make the remaining oxygen a double bond -- for now we wont do this, but its a good idea
+
+        # Step 5: Set carbon position AFTER oxygen removal (so indices are stable)
         new_mol = emol.GetMol()
+        
+        if new_mol.GetNumConformers() > 0 and new_mol.GetConformer().Is3D():
+            conformer = new_mol.GetConformer()
+            s1_pos = conformer.GetAtomPosition(s1_idx)
+            c3_pos = conformer.GetAtomPosition(c3_idx)
+            
+            # Calculate midpoint
+            midpoint_x = (s1_pos.x + c3_pos.x) / 2.0
+            midpoint_y = (s1_pos.y + c3_pos.y) / 2.0
+            midpoint_z = (s1_pos.z + c3_pos.z) / 2.0
+            
+            # Set new carbon position to midpoint
+            conformer.SetAtomPosition(new_carbon_idx, (midpoint_x, midpoint_y, midpoint_z))
+
         Chem.SanitizeMol(new_mol)
 
-        # Step 4: Relax the newly added carbon position
-        self._relax_new_carbon_position(new_mol, new_carbon_idx)
+        final_mol = self._relax_atom_subset(new_mol, [new_carbon_idx])
 
-        return new_mol
-    
-    def _relax_new_carbon_position(self, mol: Chem.Mol, new_carbon_idx: int):
-        """
-        Relax the position of the newly added carbon atom using ETKDG with coordinate constraints.
-        Freezes all atoms except the newly added carbon and only optimizes that specific carbon's position.
-        
-        Args:
-            mol: The RDKit molecule
-            new_carbon_idx: Index of the newly added carbon
-        """
-        
-        # Get 3D coordinates
-        conf = mol.GetConformer()
-        if conf.Is3D():
-            # Create coordinate map to constrain all atoms except the new carbon
-            coord_map = {}
-            for i in range(mol.GetNumAtoms()):
-                if i != new_carbon_idx:
-                    coord_map[i] = conf.GetAtomPosition(i)
-            
-            # Use ETKDG with coordinate constraints to freeze all atoms except the new carbon
-            rdDistGeom.EmbedMolecule(mol, 
-                                    coordMap=coord_map,
-                                    randomSeed=42,
-                                    useRandomCoords=False)
+        return final_mol
     
     def _outer_mod(self,
                    chemical_loss: ChemicalLoss,
