@@ -124,4 +124,4 @@ pyclops/
 - **`metrics/`**: Physics-based scoring and validation functions
 - **`torchkde/`**: Custom PyTorch-based kernel density estimation for loss calculations
 - **`visualization/`**: Interactive molecular visualization tools
-- **`examples/`**: Comprehensive tutorials and use cases
+- **`examples/`**: Tutorials and use cases (to come).
