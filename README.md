@@ -70,13 +70,58 @@ Insert Paper.
 - MDTraj
 - RDKit
 
-### Todos:
-
-- REDO YOUR TOY MODEL SIMULATIONS. AND REFIT YOUR KDES TO THEM...
-- Implement OpenMM scoring properly, with handling of the implicit H20 as a solvant.
-  - as a correlary, retrain your models on the chignolin data & validate correctly.
-- Correct and finish the structure maker
-
 ### Project Structure:
 
-To come!
+```
+pyclops/
+├── pyclops/                    # Main package directory
+│   ├── core/                   # Core functionality
+│   │   ├── chemical_loss/      # Chemical loss implementations
+│   │   └── loss_handler/       # Loss handler management
+│   ├── losses/                 # Loss function implementations
+│   │   ├── kdes/              # Kernel density estimation utilities
+│   │   ├── utils/             # Loss utility functions
+│   │   ├── amide_losses.py    # Amide bond loss functions
+│   │   ├── cysteine_carbo.py  # Cysteine-carboxylic acid losses
+│   │   ├── carboxylic_carbo.py # Carboxylic acid losses
+│   │   ├── disulfide.py       # Disulfide bond losses
+│   │   ├── lys_tyr.py         # Lysine-tyrosine losses
+│   │   └── lys_arg.py         # Lysine-arginine losses
+│   ├── structure/              # Structure manipulation tools
+│   │   ├── topology/          # Topology modification
+│   │   └── relaxation/        # Structure relaxation
+│   ├── metrics/                # Evaluation and scoring
+│   │   ├── scoring/           # Structure scoring functions
+│   │   └── validation/        # Validation metrics
+│   ├── visualization/          # Visualization tools
+│   │   └── nglview/           # NGLView integration
+│   ├── torchkde/              # PyTorch KDE implementation
+│   │   ├── algorithms.py      # KDE algorithms
+│   │   ├── bandwidths.py      # Bandwidth selection
+│   │   ├── kernels.py         # Kernel functions
+│   │   ├── modules.py         # PyTorch modules
+│   │   └── utils.py           # KDE utilities
+│   └── utils/                  # Utility functions
+│       ├── constants.py        # Physical constants
+│       └── utils.py            # General utilities
+├── examples/                    # Example notebooks and scripts
+│   ├── pdbs/                  # Example PDB files
+│   ├── Example1_loss_id.ipynb # Loss identification example
+│   ├── Example2_structure_opt.ipynb # Structure optimization
+│   ├── Example3_topology_mod.ipynb # Topology modification
+│   ├── Example4_scoring.ipynb # Structure scoring
+│   └── bens_notebook.py       # Additional examples
+├── setup.py                    # Package installation configuration
+├── requirements.txt            # Python dependencies
+└── README.md                   # This file
+```
+
+#### Key Modules:
+
+- **`core/`**: Central loss handling and chemical interaction management
+- **`losses/`**: Implementation of 6 unique cyclization chemistries with 18 inter-amino acid pairings
+- **`structure/`**: Tools for modifying protein topologies and relaxing structures
+- **`metrics/`**: Physics-based scoring and validation functions
+- **`torchkde/`**: Custom PyTorch-based kernel density estimation for loss calculations
+- **`visualization/`**: Interactive molecular visualization tools
+- **`examples/`**: Comprehensive tutorials and use cases
