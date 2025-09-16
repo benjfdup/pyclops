@@ -4,3 +4,4 @@ cys-carboxyl: CSCC(=O)C
 disulfide: C(SSCC)C
 lys-arg: N1(C)CN=C(NC1)NC
 lys-tyr: CNCc1c(O)ccc(c1)C
+lys-phe: CNCc1cccc(c1)C

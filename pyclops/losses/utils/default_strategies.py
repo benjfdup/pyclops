@@ -13,6 +13,7 @@ from ..cysteine_carbo import *
 from ..disulfide import *
 from ..lys_arg import *
 from ..lys_tyr import *
+from ..methionine_carbo import *
 
 
 DEFAULT_STRATEGIES: Set[Type[ChemicalLoss]] = {
@@ -36,6 +37,11 @@ DEFAULT_STRATEGIES: Set[Type[ChemicalLoss]] = {
     CysAsp,
     CysGlu,
     CysCTerm,
+
+    # methionine-carbo
+    MetAsp,
+    MetGlu,
+    MetCTerm,
 
     # disulfide
     Disulfide,
