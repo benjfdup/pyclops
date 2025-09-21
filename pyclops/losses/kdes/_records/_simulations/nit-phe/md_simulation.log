@@ -1,0 +1,39 @@
+2025-09-21 03:04:21 | INFO     | __main__:<module>:70 - ----------========== Starting MD ==========----------
+2025-09-21 03:04:21 | INFO     | __main__:<module>:217 - Generating forcefield for SMILES: CNCc1cccc(c1)C
+2025-09-21 03:04:21 | INFO     | __main__:<module>:219 - Generating initial PDB structure and saving to /home/ubuntu/scratch/monorepo/pyclops/pyclops/losses/kdes/_records/_simulations/lys-phe
+2025-09-21 03:04:36 | INFO     | __main__:<module>:222 - Creating OpenMM system with PME and 1nm cutoff
+2025-09-21 03:04:42 | INFO     | __main__:<module>:281 - Identifying non-water atoms and creating filtered PDB
+2025-09-21 03:04:42 | INFO     | __main__:<module>:285 - Found 23 non-water atoms out of 2885 total atoms
+2025-09-21 03:04:42 | INFO     | __main__:<module>:289 - Starting MD simulations for 10 seeds with 5000000 steps each
+2025-09-21 03:04:42 | INFO     | __main__:<module>:291 - Starting simulation for seed 0
+2025-09-21 03:04:43 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 0
+2025-09-21 03:18:23 | INFO     | __main__:<module>:347 - Completed simulation for seed 0
+2025-09-21 03:18:23 | INFO     | __main__:<module>:291 - Starting simulation for seed 1
+2025-09-21 03:18:24 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 1
+2025-09-21 03:33:12 | INFO     | __main__:<module>:347 - Completed simulation for seed 1
+2025-09-21 03:33:12 | INFO     | __main__:<module>:291 - Starting simulation for seed 2
+2025-09-21 03:33:13 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 2
+2025-09-21 03:49:14 | INFO     | __main__:<module>:347 - Completed simulation for seed 2
+2025-09-21 03:49:14 | INFO     | __main__:<module>:291 - Starting simulation for seed 3
+2025-09-21 03:49:15 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 3
+2025-09-21 04:06:18 | INFO     | __main__:<module>:347 - Completed simulation for seed 3
+2025-09-21 04:06:18 | INFO     | __main__:<module>:291 - Starting simulation for seed 4
+2025-09-21 04:06:18 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 4
+2025-09-21 04:24:32 | INFO     | __main__:<module>:347 - Completed simulation for seed 4
+2025-09-21 04:24:32 | INFO     | __main__:<module>:291 - Starting simulation for seed 5
+2025-09-21 04:24:33 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 5
+2025-09-21 04:44:09 | INFO     | __main__:<module>:347 - Completed simulation for seed 5
+2025-09-21 04:44:09 | INFO     | __main__:<module>:291 - Starting simulation for seed 6
+2025-09-21 04:44:09 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 6
+2025-09-21 05:04:43 | INFO     | __main__:<module>:347 - Completed simulation for seed 6
+2025-09-21 05:04:43 | INFO     | __main__:<module>:291 - Starting simulation for seed 7
+2025-09-21 05:04:43 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 7
+2025-09-21 05:26:44 | INFO     | __main__:<module>:347 - Completed simulation for seed 7
+2025-09-21 05:26:44 | INFO     | __main__:<module>:291 - Starting simulation for seed 8
+2025-09-21 05:26:45 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 8
+2025-09-21 05:49:38 | INFO     | __main__:<module>:347 - Completed simulation for seed 8
+2025-09-21 05:49:38 | INFO     | __main__:<module>:291 - Starting simulation for seed 9
+2025-09-21 05:49:39 | INFO     | __main__:<module>:345 - Running 5000000 MD steps for seed 9
+2025-09-21 06:14:00 | INFO     | __main__:<module>:347 - Completed simulation for seed 9
+2025-09-21 06:14:00 | INFO     | __main__:<module>:349 - ----------========== MD Simulations Complete ==========----------
+2025-09-21 06:14:00 | INFO     | __main__:<module>:350 - All results saved to: /home/ubuntu/scratch/monorepo/pyclops/pyclops/losses/kdes/_records/_simulations/lys-phe
