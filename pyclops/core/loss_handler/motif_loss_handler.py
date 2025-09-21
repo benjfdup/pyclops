@@ -83,6 +83,5 @@ class MotifLossHandler(LossHandler):
                    positions: torch.Tensor, # shape: [n_batch, n_atoms, 3] (full positions)
                    ) -> torch.Tensor: # shape: [n_batch, ]
         pos = positions[:, self._idxs_tensor, :]
-        assert pos.shape == (positions.shape[0], self._motif.shape[0], 3), "pos must have the same shape as self._motif, excluding the batch (first) dimension."
 
         return motif_loss(pos, self._motif, device=self._device)
