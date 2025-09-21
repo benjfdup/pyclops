@@ -1,115 +1,88 @@
-"""
-This is not finished yet. Need to finish as I need to be able to specify which atoms to use for the motif.
-"""
-
 import warnings
-from typing import Optional
+from typing import Optional, Tuple, Dict
 
 import torch
+import mdtraj as md
 
 from ...utils.utils import motif_loss
 from .loss_handler import LossHandler
 
+AtomKey = Tuple[int, str]  # (residue_idx, atom_name)
+AtomIndexDict = Dict[AtomKey, int]
+
 class MotifLossHandler(LossHandler):
-    '''
+    """
     A loss handler that computes structural deviation between input positions and a reference motif.
     
     This class implements a rotationally and translationally invariant structural deviation loss
     using the Kabsch algorithm for optimal alignment. The loss can be configured to ignore small
     deviations (tolerance) and to return either RMSD or MSD.
-    
-    Parameters
-    ----------
-    units_factor : float
-        Conversion factor from input position units to angstroms.
-    motif : torch.Tensor
-        Reference structure to compare against, of shape [n_atoms, 3].
-    motif_units_factor : float, optional
-        Conversion factor from motif units to angstroms. Default is equal to units_factor.
-    tolerance : float, optional
-        No-penalty range around target positions in motif units. Default is 0.0.
-    squared : bool, optional
-        If True, returns MSD instead of RMSD. Default is False.
-    allow_flips : bool, optional
-        If True, allows the Kabsch algorithm to flip the coordinate system. Default is False.
-    '''
+    """
 
-    def __init__(self,
-                 # standard args
-                 
-                 # motif args
-                 motif: torch.Tensor,
+    def __init__(self, 
+                 motif_dictionary: Dict[Tuple[int, str], torch.Tensor],
+                 trajectory: md.Trajectory,
                  units_factor: float = 1.0,
-                 motif_units_factor: Optional[float] = None,
-                 tolerance: float = 0.0,
-                 squared: bool = False,
-                 allow_flips: bool = False,
+                 device: Optional[torch.device] = None,
                  ):
         super().__init__(units_factor)
-        self.__validate_init_inputs(units_factor, motif, motif_units_factor, tolerance, squared, allow_flips)
+        self._validate_inputs(motif_dictionary, trajectory, device)
+        self._device = device if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._motif_dictionary = motif_dictionary
+        
+        self._ordered_keys = sorted(motif_dictionary.keys())
+        motif_list = []
+        for key in self._ordered_keys:
+            motif_list.append(motif_dictionary[key])
+        self._motif = torch.stack(motif_list, device=self._device)
+        self._md_topology = trajectory.topology
+        self._atom_indexes_dict = self._generate_atom_indexes_dict(self._md_topology)
+        
+        # Create tensor of atom indices for Kabsch conditioning
+        idxs_list = []
+        for key in self._ordered_keys:
+            idxs_list.append(self._atom_indexes_dict[key])
+        self._idxs_tensor = torch.tensor(idxs_list, dtype=torch.long, device=self._device)
 
-        # Set default motif_units_factor to match units_factor if not provided
-        if motif_units_factor is None:
-            motif_units_factor = units_factor
-        self._motif = motif * motif_units_factor # convert to angstroms
-        self._tolerance = tolerance * motif_units_factor  # convert to angstroms
-        self._squared = squared
-        self._allow_flips = allow_flips
-    
-    def __validate_init_inputs(self,
-                               units_factor: float,
-                               motif: torch.Tensor,
-                               motif_units_factor: Optional[float],
-                               tolerance: float,
-                               squared: bool,
-                               allow_flips: bool,
-                               ) -> None:
-        '''Validate the inputs to the MotifLossHandler.'''
-        if motif_units_factor != units_factor:
-            warnings.warn(
-                f"Motif units factor ({motif_units_factor}) does not match units factor ({units_factor}). "
-                "This will still work, but you should take care that units are handled correctly throughout.")
-        if not isinstance(motif, torch.Tensor):
-            raise TypeError(f"Motif must be a torch.Tensor. Got {type(motif)}.")
-        if not isinstance(motif_units_factor, (float, int)):
-            raise TypeError(f"Motif units factor must be a float or int. Got {type(motif_units_factor)}.")
-        if not isinstance(tolerance, (float, int)):
-            raise TypeError(f"Tolerance must be a float or int. Got {type(tolerance)}.")
-        if not isinstance(squared, bool):
-            raise TypeError(f"Squared must be a bool. Got {type(squared)}.")
-        if not isinstance(allow_flips, bool):
-            raise TypeError(f"Allow flips must be a bool. Got {type(allow_flips)}.")
-
-    @property
-    def tolerance(self) -> float:
-        """Tolerance in angstroms."""
-        return self._tolerance
-    
-    @property
-    def device(self) -> torch.device:
-        """Device of the motif tensor."""
-        return self._motif.device
-
-    def _eval_loss(self, positions: torch.Tensor) -> torch.Tensor:
+    def _validate_inputs(self, 
+                        motif_dictionary: Dict[Tuple[int, str], torch.Tensor],
+                        trajectory: md.Trajectory,
+                        device: Optional[torch.device]) -> None:
         """
-        Compute the structural deviation loss between input positions and the motif.
-
-        Parameters
-        ----------
-        positions : torch.Tensor
-            Input positions of shape [batch_size, n_atoms, 3] in angstroms.
-
-        Returns
-        -------
-        torch.Tensor
-            Loss values of shape [batch_size, ] in angstroms.
+        Simple validation for MotifLossHandler inputs.
         """
-        if positions.device != self.device:
-            raise ValueError(f"Positions and motif are on different devices. "
-                             f"Positions device: {positions.device}, motif device: {self.device}")
-            
-        return motif_loss(positions, 
-                          self._motif, 
-                          tolerance=self._tolerance, 
-                          squared=self._squared, 
-                          allow_flips=self._allow_flips)
+        # Validate trajectory
+        if not isinstance(trajectory, md.Trajectory):
+            raise ValueError("trajectory must be an instance of mdtraj.Trajectory")
+        if trajectory.n_atoms == 0:
+            raise ValueError("trajectory must have at least one atom")
+        if trajectory.n_residues == 0:
+            raise ValueError("trajectory must have at least one residue")
+        if trajectory.n_chains != 1:
+            raise ValueError("trajectory must have only one chain")
+        
+        # Validate motif dictionary
+        if not isinstance(motif_dictionary, dict):
+            raise ValueError("motif_dictionary must be a dictionary")
+        if len(motif_dictionary) == 0:
+            raise ValueError("motif_dictionary must not be empty")
+        
+        # Validate device
+        if device is not None and not isinstance(device, torch.device):
+            raise ValueError("device must be a torch.device")
+
+    @staticmethod
+    def _generate_atom_indexes_dict(topology: md.Topology) -> AtomIndexDict:
+        indices = {}
+        for residue in topology.residues:
+            for atom in residue.atoms:
+                indices[(residue.index, atom.name)] = atom.index
+        return indices
+
+    def _eval_loss(self, 
+                   positions: torch.Tensor, # shape: [n_batch, n_atoms, 3] (full positions)
+                   ) -> torch.Tensor: # shape: [n_batch, ]
+        pos = positions[:, self._idxs_tensor, :]
+        assert pos.shape == (positions.shape[0], self._motif.shape[0], 3), "pos must have the same shape as self._motif, excluding the batch (first) dimension."
+
+        return motif_loss(pos, self._motif, device=self._device)
