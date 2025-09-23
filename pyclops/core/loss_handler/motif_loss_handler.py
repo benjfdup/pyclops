@@ -22,14 +22,17 @@ class MotifLossHandler(LossHandler):
     def __init__(self, 
                  motif_dictionary: Dict[Tuple[int, str], torch.Tensor],
                  trajectory: md.Trajectory,
+                 tolerance: float = 0.0,
                  units_factor: float = 1.0,
+                 squared:bool = True,
                  device: Optional[torch.device] = None,
                  ):
         super().__init__(units_factor)
+        self._squared = squared
         self._validate_inputs(motif_dictionary, trajectory, device)
         self._device = device if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._motif_dictionary = motif_dictionary
-        
+        self._tolerance = tolerance
         self._ordered_keys = sorted(motif_dictionary.keys())
         motif_list = []
         for key in self._ordered_keys:
@@ -84,4 +87,4 @@ class MotifLossHandler(LossHandler):
                    ) -> torch.Tensor: # shape: [n_batch, ]
         pos = positions[:, self._idxs_tensor, :]
 
-        return motif_loss(pos, self._motif, device=self._device)
+        return motif_loss(pos, self._motif, device=self._device, squared=self._squared, tolerance=self._tolerance)
