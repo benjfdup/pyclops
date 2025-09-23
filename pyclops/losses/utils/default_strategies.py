@@ -14,6 +14,7 @@ from ..disulfide import *
 from ..lys_arg import *
 from ..lys_tyr import *
 from ..methionine_carbo import *
+from ..nit_phe import *
 
 
 DEFAULT_STRATEGIES: Set[Type[ChemicalLoss]] = {
@@ -51,6 +52,10 @@ DEFAULT_STRATEGIES: Set[Type[ChemicalLoss]] = {
 
     # lys-tyr
     LysTyr,
+
+    # nit-phe
+    PheHead,
+    LysPhe,
 }
 
 # default lookup table for method_str -> strategy
