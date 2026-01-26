@@ -1,3 +1,3 @@
-from .clash_filter.clash_filter import ClashFilter
+from .filters.clash_filter import ClashFilter
 
 __all__ = ["ClashFilter"]
