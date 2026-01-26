@@ -11,7 +11,10 @@ __all__ = ["ClashFilter"]
 import numpy as np
 import torch
 import mdtraj as md
-from typing import Union, Tuple
+import rdkit.Chem as Chem
+from typing import Union
+import tempfile
+import os
 
 TensorLike = Union[torch.Tensor, np.ndarray]
 
@@ -184,6 +187,61 @@ class ClashFilter:
         """Create ClashFilter from a PDB file."""
         topology = md.load_pdb(pdb_file).topology
         return cls(topology, units_factor, clash_cutoff, include_hydrogens, except_disulfide_bonds, except_bonded_pairs)
+
+    @classmethod
+    def from_rdkit_mol(
+        cls,
+        mol: Chem.Mol,
+        units_factor: float = 10.0,
+        clash_cutoff: float = 0.63,
+        include_hydrogens: bool = False,
+        except_disulfide_bonds: bool = True,
+        except_bonded_pairs: bool = True,
+    ) -> "ClashFilter":
+        """Create ClashFilter from an RDKit molecule.
+        
+        The molecule must have a conformer with 3D coordinates. Use 
+        rdkit.Chem.AllChem.EmbedMolecule() to generate coordinates if needed.
+        
+        Args:
+            mol: RDKit molecule with at least one conformer containing 3D coordinates.
+            units_factor: Factor to convert input coordinates to Angstroms.
+            clash_cutoff: Fraction of sum of radii below which atoms are clashing.
+            include_hydrogens: Whether to include hydrogen atoms in clash detection.
+            except_disulfide_bonds: Whether to exclude disulfide bonds from clash detection.
+            except_bonded_pairs: Whether to exclude bonded atom pairs from clash detection.
+            
+        Returns:
+            ClashFilter instance configured for the molecule's topology.
+            
+        Raises:
+            ValueError: If the molecule has no conformers.
+        """
+        if mol.GetNumConformers() == 0:
+            raise ValueError(
+                "RDKit molecule has no conformers. Use AllChem.EmbedMolecule() "
+                "to generate 3D coordinates first."
+            )
+        
+        # Convert RDKit mol to PDB block, then load via mdtraj
+        pdb_block = Chem.MolToPDBBlock(mol)
+        
+        # Write to temp file and load with mdtraj (mdtraj doesn't support StringIO)
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.pdb', delete=False) as f:
+            f.write(pdb_block)
+            temp_path = f.name
+        
+        topology = md.load_pdb(temp_path).topology
+        os.unlink(temp_path)
+        
+        return cls(
+            topology, 
+            units_factor, 
+            clash_cutoff, 
+            include_hydrogens, 
+            except_disulfide_bonds, 
+            except_bonded_pairs
+        )
         
         # ================================ OLD CODE ================================
         '''
