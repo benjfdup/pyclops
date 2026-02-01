@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import mdtraj as md
 import rdkit.Chem as Chem
-from typing import Union
+from typing import Union, Tuple
 import tempfile
 import os
 
@@ -177,6 +177,14 @@ class ClashFilter:
         coords = self._preprocess_coordinates(coordinates)
         distances = self._calculate_pairwise_distances(coords)
         return self._compute_good_sample_mask(distances)
+
+    def filter_and_mask(self, coordinates: TensorLike) -> Tuple[np.ndarray, np.ndarray]:
+        """Filter out samples with heavy atom clashes and return a mask of valid samples.
+        """
+        coords = self._preprocess_coordinates(coordinates)
+        distances = self._calculate_pairwise_distances(coords)
+        good_sample_mask = self._compute_good_sample_mask(distances)
+        return coords[good_sample_mask], good_sample_mask
 
     def count_clashes(self, coordinates: TensorLike) -> np.ndarray:
         """Count the number of clashes in a sample.
