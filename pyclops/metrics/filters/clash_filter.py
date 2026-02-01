@@ -180,6 +180,8 @@ class ClashFilter:
 
     def filter_and_mask(self, coordinates: TensorLike) -> Tuple[np.ndarray, np.ndarray]:
         """Filter out samples with heavy atom clashes and return a mask of valid samples.
+
+        REDUNDANT FUNCTION, BUT KEPT FOR CONVENIENCE.
         """
         coords = self._preprocess_coordinates(coordinates)
         distances = self._calculate_pairwise_distances(coords)
