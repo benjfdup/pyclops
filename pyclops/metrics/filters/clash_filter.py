@@ -41,7 +41,7 @@ class ClashFilter:
     def __init__(
         self,
         topology: md.Topology,
-        units_factor: float = 10.0,  # input_coords * units_factor = Angstroms
+        units_factor: float = 10.0,  # input_coords * units_factor = Angstroms, default is nanometers (which becomes angstroms)
         clash_cutoff: float = 0.63,  # fraction of sum of radii
         include_hydrogens: bool = False, # hydrogen clashes are less meaningful and hydrogens are often not present in structures
         except_disulfide_bonds: bool = True, # S-S bonds are handled separately since they need distance-based logic (close = bond, far = clash)
